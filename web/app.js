@@ -84,6 +84,7 @@ let pendingBlockUser = null
 const mobileDetailQuery = window.matchMedia("(max-width: 900px)")
 let activePickerInput = null
 let pickerMonth = new Date()
+let loadMoreObserver = null
 
 const getTakeoverTimeFilter = () => {
   if (activeFilter !== "range") return activeFilter
@@ -997,6 +998,19 @@ listEl.addEventListener("click", async event => {
 loadMoreButton?.addEventListener("click", () => {
   if (!loading && !loadingMore) fetchTakeovers({ append: true })
 })
+
+if (loadMoreButton && "IntersectionObserver" in window) {
+  loadMoreObserver = new IntersectionObserver(
+    entries => {
+      const [entry] = entries
+      if (entry?.isIntersecting && !loadMoreButton.hidden && !loadMoreButton.disabled && !loading && !loadingMore) {
+        fetchTakeovers({ append: true })
+      }
+    },
+    { rootMargin: "220px 0px" },
+  )
+  loadMoreObserver.observe(loadMoreButton)
+}
 
 detailEl.addEventListener("click", handleDetailAction)
 detailModalContent.addEventListener("click", handleDetailAction)

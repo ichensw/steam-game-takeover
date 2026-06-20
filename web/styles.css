@@ -564,24 +564,6 @@ button {
 .takeover-list {
   display: grid;
   gap: 12px;
-  max-height: calc(5 * 138px + 4 * 12px);
-  overflow-y: auto;
-  padding-right: 4px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--faint) transparent;
-}
-
-.takeover-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.takeover-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.takeover-list::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--faint);
 }
 
 .load-more {
