@@ -65,6 +65,14 @@
 
 [docs/backend-api-design.md](docs/backend-api-design.md)
 
+当前前端接口地址：
+
+```text
+http://47.102.200.211:8081
+```
+
+微信开发者工具本地调试时，如果使用 HTTP/IP 地址，需要在开发者工具里开启“不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书”。正式版小程序需要配置 HTTPS 合法域名。
+
 核心登录流程：
 
 ```text

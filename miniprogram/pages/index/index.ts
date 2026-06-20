@@ -24,6 +24,8 @@ type Schedule =
     }
 
 type UserProfile = {
+  userId?: string
+  openid?: string
   nickName: string
   steamId: string
   avatarUrl: string
@@ -50,12 +52,93 @@ type Takeover = {
 const PAGE_SIZE = 5
 
 const PROFILE_KEY = 'steam_takeover_user'
-const LOGIN_CODE_KEY = 'steam_takeover_login_code'
-const ADMIN_AUTH_KEY = 'steam_takeover_admin_authed'
-const BLACKLIST_KEY = 'steam_takeover_blacklist'
-const ADMIN_PASSWORD = 'tuwo2026'
+const TOKEN_KEY = 'steam_takeover_token'
+const ADMIN_TOKEN_KEY = 'steam_takeover_admin_token'
+const API_BASE_URL = 'http://47.102.200.211:8081'
 const MALE_AVATAR_URL = '/assets/avatar-male.jpg'
 const FEMALE_AVATAR_URL = '/assets/avatar-female.jpg'
+
+type ApiResponse<T> = {
+  success?: boolean
+  code?: string
+  message?: string
+  data?: T
+}
+
+type ApiRequestOptions = {
+  url: string
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  data?: WechatMiniprogram.IAnyObject
+  tokenType?: 'user' | 'admin' | 'none'
+}
+
+type LoginResult = {
+  token?: string
+  user?: Record<string, any>
+  profileCompleted?: boolean
+  blocked?: boolean
+  isBlocked?: boolean
+}
+
+const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
+const getAdminToken = () => wx.getStorageSync(ADMIN_TOKEN_KEY) as string
+
+const apiRequest = <T>(options: ApiRequestOptions) => {
+  return new Promise<T>((resolve, reject) => {
+    const token =
+      options.tokenType === 'admin'
+        ? getAdminToken()
+        : options.tokenType === 'none'
+          ? ''
+          : getUserToken()
+    const header: WechatMiniprogram.IAnyObject = {
+      'content-type': 'application/json',
+    }
+
+    if (token) {
+      header.Authorization = `Bearer ${token}`
+    }
+
+    wx.request<ApiResponse<T> | T>({
+      url: `${API_BASE_URL}${options.url}`,
+      method: options.method || 'GET',
+      data: options.data,
+      header,
+      success: response => {
+        const body = response.data as ApiResponse<T>
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          reject(new Error(body?.code || body?.message || `请求失败：${response.statusCode}`))
+          return
+        }
+
+        if (body && typeof body === 'object' && 'success' in body) {
+          if (body.success === false) {
+            reject(new Error(body.message || body.code || '请求失败'))
+            return
+          }
+
+          resolve((body.data || null) as T)
+          return
+        }
+
+        resolve(response.data as T)
+      },
+      fail: () => {
+        reject(new Error('网络请求失败'))
+      },
+    })
+  })
+}
+
+const buildQuery = (params: Record<string, string | number | undefined>) => {
+  const query = Object.keys(params)
+    .filter(key => params[key] !== undefined && params[key] !== '')
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`)
+    .join('&')
+
+  return query ? `?${query}` : ''
+}
 
 const getGenderAvatar = (gender: Gender | '') => {
   if (gender === 'female') {
@@ -67,6 +150,161 @@ const getGenderAvatar = (gender: Gender | '') => {
   }
 
   return ''
+}
+
+const normalizeGender = (gender: unknown): Gender | '' => {
+  if (gender === 'female' || gender === 2 || gender === '2' || gender === '女') {
+    return 'female'
+  }
+
+  if (gender === 'male' || gender === 1 || gender === '1' || gender === '男') {
+    return 'male'
+  }
+
+  return ''
+}
+
+const normalizeUserProfile = (rawUser: Record<string, any> | null | undefined): UserProfile | null => {
+  if (!rawUser) {
+    return null
+  }
+
+  const gender = normalizeGender(rawUser.gender)
+  const nickName = rawUser.nickName || rawUser.nickname || rawUser.nick_name || ''
+  const steamId = rawUser.steamId || rawUser.steam_id || ''
+
+  if (!nickName || !steamId || !gender) {
+    return null
+  }
+
+  return {
+    userId: rawUser.userId ? String(rawUser.userId) : rawUser.id ? String(rawUser.id) : undefined,
+    openid: rawUser.openid ? String(rawUser.openid) : undefined,
+    nickName,
+    steamId,
+    gender,
+    avatarUrl: rawUser.avatarUrl || rawUser.avatar_url || getGenderAvatar(gender),
+  }
+}
+
+const normalizeParticipant = (rawParticipant: Record<string, any>): Participant => {
+  const normalized = normalizeUserProfile(rawParticipant)
+
+  if (normalized) {
+    return normalized
+  }
+
+  const gender = normalizeGender(rawParticipant.gender) || 'female'
+  return {
+    userId: rawParticipant.userId ? String(rawParticipant.userId) : rawParticipant.id ? String(rawParticipant.id) : undefined,
+    openid: rawParticipant.openid ? String(rawParticipant.openid) : undefined,
+    nickName: rawParticipant.nickName || rawParticipant.nickname || '玩家',
+    steamId: rawParticipant.steamId || rawParticipant.steam_id || '',
+    gender,
+    avatarUrl: rawParticipant.avatarUrl || rawParticipant.avatar_url || getGenderAvatar(gender),
+  }
+}
+
+const normalizeScheduleType = (scheduleType: unknown): ScheduleType => {
+  if (scheduleType === 'daily' || scheduleType === 2 || scheduleType === '2') {
+    return 'daily'
+  }
+
+  if (scheduleType === 'range' || scheduleType === 3 || scheduleType === '3' || scheduleType === 'date_range') {
+    return 'range'
+  }
+
+  return 'once'
+}
+
+const stripTimeSeconds = (time: unknown) => {
+  if (typeof time !== 'string') {
+    return ''
+  }
+
+  return time.length >= 5 ? time.slice(0, 5) : time
+}
+
+const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
+  const scheduleType = normalizeScheduleType(rawTakeover.scheduleType || rawTakeover.schedule_type)
+  const playTime = stripTimeSeconds(rawTakeover.playTime || rawTakeover.play_time || rawTakeover.time)
+  const membersSource = rawTakeover.members || rawTakeover.participants || rawTakeover.previewMembers || []
+  const participants = Array.isArray(membersSource)
+    ? membersSource.map((member: Record<string, any>) => normalizeParticipant(member))
+    : []
+  const joined = Number(rawTakeover.joinedCount || rawTakeover.joined_count || rawTakeover.joined || participants.length || 0)
+  const limit = Number(rawTakeover.participantLimit || rawTakeover.participant_limit || rawTakeover.limit || 0)
+  const schedule: Schedule =
+    scheduleType === 'daily'
+      ? { type: 'daily', time: playTime }
+      : scheduleType === 'range'
+        ? {
+            type: 'range',
+            startDate: rawTakeover.startDate || rawTakeover.start_date || '',
+            endDate: rawTakeover.endDate || rawTakeover.end_date || '',
+            time: playTime,
+          }
+        : {
+            type: 'once',
+            date: rawTakeover.startDate || rawTakeover.start_date || rawTakeover.date || '',
+            time: playTime,
+          }
+
+  return {
+    id: String(rawTakeover.id),
+    title: rawTakeover.title || '',
+    host: rawTakeover.host || rawTakeover.creatorName || rawTakeover.creator_name || '',
+    joined,
+    limit,
+    schedule,
+    scheduleText: rawTakeover.scheduleText || rawTakeover.schedule_text || formatSchedule(schedule),
+    description: rawTakeover.description || '',
+    avatarUrl: rawTakeover.avatarUrl || rawTakeover.avatar_url || participants[0]?.avatarUrl || FEMALE_AVATAR_URL,
+    participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 4),
+    participants,
+    hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
+  }
+}
+
+const normalizeTakeoverList = (rawData: unknown) => {
+  const data = rawData as Record<string, any>
+  const rawList = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray(data?.list)
+      ? data.list
+      : Array.isArray(data?.records)
+        ? data.records
+        : []
+  const list = rawList.map((item: Record<string, any>) => normalizeTakeover(item))
+  const total = Number(data?.total || data?.totalCount || data?.total_count || list.length)
+
+  return {
+    list,
+    total,
+  }
+}
+
+const buildTakeoverPayload = (
+  title: string,
+  limit: number,
+  scheduleType: ScheduleType,
+  schedule: Schedule,
+  description: string
+) => {
+  return {
+    title,
+    participantLimit: limit,
+    scheduleType: scheduleType === 'daily' ? 2 : scheduleType === 'range' ? 3 : 1,
+    startDate:
+      schedule.type === 'daily'
+        ? undefined
+        : schedule.type === 'range'
+          ? schedule.startDate
+          : schedule.date,
+    endDate: schedule.type === 'range' ? schedule.endDate : undefined,
+    playTime: schedule.time,
+    description,
+  }
 }
 
 function parseDateText(dateText: string) {
@@ -204,16 +442,6 @@ const getTimeFilterLabel = (timeFilter: TimeFilter) => {
   return selectedFilter?.label || '今天'
 }
 
-const parseMonthDayValue = (dateText: string) => {
-  const parsedDate = parseDateText(dateText)
-
-  if (!parsedDate) {
-    return null
-  }
-
-  return (parsedDate.getMonth() + 1) * 100 + parsedDate.getDate()
-}
-
 const isDateBeforeToday = (dateText: string) => {
   const parsedDate = parseDateText(dateText)
 
@@ -226,35 +454,6 @@ const isDateBeforeToday = (dateText: string) => {
   parsedDate.setHours(0, 0, 0, 0)
 
   return parsedDate.getTime() < today.getTime()
-}
-
-const rangeOverlaps = (schedule: Schedule, rangeFilter: RangeFilter) => {
-  if (schedule.type !== 'range') {
-    return false
-  }
-
-  const scheduleStart = parseMonthDayValue(schedule.startDate)
-  const scheduleEnd = parseMonthDayValue(schedule.endDate)
-  const filterStart = rangeFilter.startDate ? parseMonthDayValue(rangeFilter.startDate) : null
-  const filterEnd = rangeFilter.endDate ? parseMonthDayValue(rangeFilter.endDate) : null
-
-  if (!scheduleStart || !scheduleEnd) {
-    return false
-  }
-
-  if (filterStart && filterEnd) {
-    return scheduleStart <= filterEnd && scheduleEnd >= filterStart
-  }
-
-  if (filterStart) {
-    return scheduleEnd >= filterStart
-  }
-
-  if (filterEnd) {
-    return scheduleStart <= filterEnd
-  }
-
-  return true
 }
 
 const mockTakeovers: Takeover[] = [
@@ -484,7 +683,8 @@ const mockTakeovers: Takeover[] = [
   }),
 ]
 
-let allTakeovers = [...mockTakeovers]
+const ENABLE_MOCK_DATA = false
+let allTakeovers = ENABLE_MOCK_DATA ? [...mockTakeovers] : []
 
 const getStoredProfile = (): UserProfile | null => {
   const userProfile = wx.getStorageSync(PROFILE_KEY)
@@ -508,81 +708,22 @@ const getStoredProfile = (): UserProfile | null => {
   return null
 }
 
-const getStoredBlacklist = () => {
-  const blacklist = wx.getStorageSync(BLACKLIST_KEY)
-
-  if (!Array.isArray(blacklist)) {
-    return []
+const getServerTimeFilter = (timeFilter: TimeFilter, rangeFilter: RangeFilter) => {
+  const timeFilterMap: Record<TimeFilter, string> = {
+    all: 'all',
+    today: 'today',
+    tomorrow: 'tomorrow',
+    daily: 'daily',
+    week: 'this_week',
+    range: rangeFilter.startDate || rangeFilter.endDate ? 'custom_range' : 'date_range',
   }
 
-  return blacklist.filter(item => typeof item === 'string')
-}
-
-const isProfileBlacklisted = (profile: UserProfile | null) => {
-  return !!profile && getStoredBlacklist().includes(profile.steamId)
-}
-
-const matchesTimeFilter = (takeover: Takeover, timeFilter: TimeFilter, rangeFilter: RangeFilter) => {
-  const schedule = takeover.schedule
-
-  if (timeFilter === 'all') {
-    return true
-  }
-
-  if (timeFilter === 'daily') {
-    return schedule.type === 'daily'
-  }
-
-  if (timeFilter === 'range') {
-    return rangeOverlaps(schedule, rangeFilter)
-  }
-
-  if (timeFilter === 'today') {
-    if (schedule.type !== 'once') {
-      return false
-    }
-
-    const parsedDate = parseDateText(schedule.date)
-    return parsedDate
-      ? formatDateForInput(parsedDate) === formatDateForInput(new Date())
-      : ['今天', '今晚'].includes(schedule.date)
-  }
-
-  if (timeFilter === 'tomorrow') {
-    if (schedule.type !== 'once') {
-      return false
-    }
-
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const parsedDate = parseDateText(schedule.date)
-    return parsedDate
-      ? formatDateForInput(parsedDate) === formatDateForInput(tomorrow)
-      : ['明天', '明晚'].includes(schedule.date)
-  }
-
-  return (
-    (schedule.type === 'once' && ['周一', '周二', '周三', '周四', '周五', '周六', '周日', '周末'].includes(schedule.date)) ||
-    schedule.type === 'range'
-  )
-}
-
-const getFilteredTakeovers = (keyword: string, timeFilter: TimeFilter, rangeFilter: RangeFilter) => {
-  const normalizedKeyword = keyword.trim().toLowerCase()
-
-  return allTakeovers.filter(takeover => {
-    const matchesKeyword =
-      !normalizedKeyword ||
-      takeover.title.toLowerCase().includes(normalizedKeyword) ||
-      takeover.description.toLowerCase().includes(normalizedKeyword)
-
-    return matchesKeyword && matchesTimeFilter(takeover, timeFilter, rangeFilter)
-  })
+  return timeFilterMap[timeFilter]
 }
 
 Component({
   data: {
-    takeoverList: allTakeovers.slice(0, PAGE_SIZE),
+    takeoverList: [] as Takeover[],
     searchKeyword: '',
     timeFilters,
     activeTimeFilter: 'all' as TimeFilter,
@@ -595,11 +736,13 @@ Component({
     isRefreshing: false,
     isLoadingMore: false,
     isLoadMoreLocked: false,
-    hasMore: allTakeovers.length > PAGE_SIZE,
+    hasMore: false,
     maleAvatarUrl: MALE_AVATAR_URL,
     femaleAvatarUrl: FEMALE_AVATAR_URL,
     isAuthorizing: false,
     isSaving: false,
+    isBlocked: false,
+    blockedMessage: '',
     isAdmin: false,
     showProfileSheet: false,
     showCreateSheet: false,
@@ -641,11 +784,9 @@ Component({
   lifetimes: {
     attached() {
       const userProfile = getStoredProfile()
-      const blacklistedSteamIds = getStoredBlacklist()
 
       this.setData({
-        isAdmin: wx.getStorageSync(ADMIN_AUTH_KEY) === true,
-        blacklistedSteamIds,
+        isAdmin: !!getAdminToken(),
       })
 
       if (userProfile) {
@@ -657,10 +798,74 @@ Component({
           avatarUrl: userProfile.avatarUrl,
         })
       }
+
+      this.bootstrap()
     },
   },
 
   methods: {
+    bootstrap() {
+      this.setData({ isAuthorizing: true })
+      wx.login({
+        success: ({ code }) => {
+          if (!code) {
+            wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+            return
+          }
+
+          apiRequest<LoginResult>({
+            url: '/api/auth/wx-login',
+            method: 'POST',
+            data: { code },
+            tokenType: 'none',
+          })
+            .then(result => {
+              if (result.token) {
+                wx.setStorageSync(TOKEN_KEY, result.token)
+              }
+
+              const normalizedProfile = normalizeUserProfile(result.user)
+              if (normalizedProfile) {
+                wx.setStorageSync(PROFILE_KEY, normalizedProfile)
+                getApp<IAppOption>().globalData.userProfile = normalizedProfile
+                this.setData({
+                  nickName: normalizedProfile.nickName,
+                  steamId: normalizedProfile.steamId,
+                  gender: normalizedProfile.gender,
+                  avatarUrl: normalizedProfile.avatarUrl,
+                })
+              }
+
+              if (result.blocked || result.isBlocked) {
+                this.setData({
+                  isBlocked: true,
+                  blockedMessage: '您已被管理员拉黑',
+                  takeoverList: [],
+                  hasMore: false,
+                })
+                return
+              }
+
+              this.setData({
+                isBlocked: false,
+                blockedMessage: '',
+              })
+              this.loadTakeoversFromServer(1, true)
+            })
+            .catch(error => {
+              wx.showToast({ title: error.message || '登录失败', icon: 'none' })
+            })
+            .finally(() => {
+              this.setData({ isAuthorizing: false })
+            })
+        },
+        fail: () => {
+          this.setData({ isAuthorizing: false })
+          wx.showToast({ title: '登录失败，请稍后再试', icon: 'none' })
+        },
+      })
+    },
+
     viewTakeover(event: WechatMiniprogram.TouchEvent) {
       this.ensureProfile('view', event.currentTarget.dataset.id as string)
     },
@@ -679,7 +884,7 @@ Component({
     openAdminSheet() {
       if (this.data.isAdmin) {
         this.setData({ isAdmin: false })
-        wx.removeStorageSync(ADMIN_AUTH_KEY)
+        wx.removeStorageSync(ADMIN_TOKEN_KEY)
         wx.showToast({ title: '已退出管理', icon: 'success' })
         return
       }
@@ -707,19 +912,42 @@ Component({
     },
 
     verifyAdminPassword() {
-      if (this.data.adminPassword !== ADMIN_PASSWORD) {
-        this.setData({ adminPasswordError: '密码不正确' })
+      const password = this.data.adminPassword
+
+      if (!password) {
+        this.setData({ adminPasswordError: '请输入管理员密码' })
         return
       }
 
-      wx.setStorageSync(ADMIN_AUTH_KEY, true)
-      this.setData({
-        isAdmin: true,
-        showAdminSheet: false,
-        adminPassword: '',
-        adminPasswordError: '',
+      this.setData({ isAuthorizing: true })
+      apiRequest<{ adminToken?: string; token?: string }>({
+        url: '/api/admin/login',
+        method: 'POST',
+        data: { password },
+        tokenType: 'none',
       })
-      wx.showToast({ title: '已进入管理', icon: 'success' })
+        .then(result => {
+          const adminToken = result.adminToken || result.token
+
+          if (!adminToken) {
+            throw new Error('管理员登录失败')
+          }
+
+          wx.setStorageSync(ADMIN_TOKEN_KEY, adminToken)
+          this.setData({
+            isAdmin: true,
+            showAdminSheet: false,
+            adminPassword: '',
+            adminPasswordError: '',
+          })
+          wx.showToast({ title: '已进入管理', icon: 'success' })
+        })
+        .catch(error => {
+          this.setData({ adminPasswordError: error.message || '密码不正确' })
+        })
+        .finally(() => {
+          this.setData({ isAuthorizing: false })
+        })
     },
 
     handleSearchInput(event: WechatMiniprogram.Input) {
@@ -804,8 +1032,6 @@ Component({
         startDate: this.data.rangeStartDate,
         endDate: this.data.rangeEndDate,
       }
-      const filteredList = getFilteredTakeovers(keyword, timeFilter, rangeFilter)
-      const takeoverList = filteredList.slice(0, PAGE_SIZE)
       const activeTimeFilterLabel = getTimeFilterLabel(timeFilter)
 
       this.setData({
@@ -813,11 +1039,57 @@ Component({
         activeTimeFilter: timeFilter,
         activeTimeFilterLabel,
         showTimeFilterDropdown: false,
-        takeoverList,
         pageIndex: 1,
-        hasMore: filteredList.length > takeoverList.length,
         isLoadingMore: false,
       })
+
+      this.loadTakeoversFromServer(1, true, rangeFilter)
+    },
+
+    loadTakeoversFromServer(page: number, replace: boolean, nextRangeFilter?: RangeFilter) {
+      if (this.data.isBlocked) {
+        return
+      }
+
+      const rangeFilter = nextRangeFilter || {
+        startDate: this.data.rangeStartDate,
+        endDate: this.data.rangeEndDate,
+      }
+      const query = buildQuery({
+        keyword: this.data.searchKeyword.trim(),
+        timeFilter: getServerTimeFilter(this.data.activeTimeFilter, rangeFilter),
+        startDate: rangeFilter.startDate,
+        endDate: rangeFilter.endDate,
+        page,
+        pageSize: PAGE_SIZE,
+      })
+
+      apiRequest<unknown>({
+        url: `/api/takeovers${query}`,
+      })
+        .then(rawData => {
+          const result = normalizeTakeoverList(rawData)
+          allTakeovers = replace ? result.list : [...allTakeovers, ...result.list]
+
+          this.setData({
+            takeoverList: allTakeovers,
+            pageIndex: page,
+            hasMore: allTakeovers.length < result.total && result.list.length > 0,
+          })
+        })
+        .catch(error => {
+          if (error.message === 'USER_BLOCKED' || error.message.includes('拉黑')) {
+            this.setData({
+              isBlocked: true,
+              blockedMessage: '您已被管理员拉黑',
+              takeoverList: [],
+              hasMore: false,
+            })
+            return
+          }
+
+          wx.showToast({ title: error.message || '列表加载失败', icon: 'none' })
+        })
     },
 
     refreshTakeovers() {
@@ -830,30 +1102,15 @@ Component({
         isLoadMoreLocked: true,
       })
 
-      setTimeout(() => {
-        const filteredList = getFilteredTakeovers(
-          this.data.searchKeyword,
-          this.data.activeTimeFilter,
-          {
-            startDate: this.data.rangeStartDate,
-            endDate: this.data.rangeEndDate,
-          }
-        )
-        const refreshedList = filteredList.slice(0, PAGE_SIZE)
-
-        this.setData({
-          takeoverList: refreshedList,
-          pageIndex: 1,
-          hasMore: filteredList.length > refreshedList.length,
-          isRefreshing: false,
-        })
-
-        wx.showToast({ title: '已刷新', icon: 'success' })
-
+      const finishRefresh = () => {
+        this.setData({ isRefreshing: false })
         setTimeout(() => {
           this.setData({ isLoadMoreLocked: false })
         }, 600)
-      }, 500)
+      }
+
+      this.loadTakeoversFromServer(1, true)
+      setTimeout(finishRefresh, 600)
     },
 
     loadMoreTakeovers() {
@@ -867,26 +1124,36 @@ Component({
       }
 
       this.setData({ isLoadingMore: true })
+      const nextPageIndex = this.data.pageIndex + 1
 
-      setTimeout(() => {
-        const filteredList = getFilteredTakeovers(
-          this.data.searchKeyword,
-          this.data.activeTimeFilter,
-          {
+      apiRequest<unknown>({
+        url: `/api/takeovers${buildQuery({
+          keyword: this.data.searchKeyword.trim(),
+          timeFilter: getServerTimeFilter(this.data.activeTimeFilter, {
             startDate: this.data.rangeStartDate,
             endDate: this.data.rangeEndDate,
-          }
-        )
-        const nextPageIndex = this.data.pageIndex + 1
-        const nextList = filteredList.slice(0, nextPageIndex * PAGE_SIZE)
-
-        this.setData({
-          takeoverList: nextList,
-          pageIndex: nextPageIndex,
-          hasMore: nextList.length < filteredList.length,
-          isLoadingMore: false,
+          }),
+          startDate: this.data.rangeStartDate,
+          endDate: this.data.rangeEndDate,
+          page: nextPageIndex,
+          pageSize: PAGE_SIZE,
+        })}`,
+      })
+        .then(rawData => {
+          const result = normalizeTakeoverList(rawData)
+          allTakeovers = [...allTakeovers, ...result.list]
+          this.setData({
+            takeoverList: allTakeovers,
+            pageIndex: nextPageIndex,
+            hasMore: allTakeovers.length < result.total && result.list.length > 0,
+          })
         })
-      }, 500)
+        .catch(error => {
+          wx.showToast({ title: error.message || '加载失败', icon: 'none' })
+        })
+        .finally(() => {
+          this.setData({ isLoadingMore: false })
+        })
     },
 
     ensureProfile(action: PendingAction, takeoverId: string) {
@@ -895,47 +1162,28 @@ Component({
       }
 
       this.setData({
-        isAuthorizing: true,
         pendingAction: action,
         pendingTakeoverId: takeoverId,
       })
 
-      wx.login({
-        success: ({ code }) => {
-          if (!code) {
-            wx.showToast({ title: '进入失败，请重试', icon: 'none' })
-            return
-          }
+      if (this.data.isBlocked) {
+        wx.showToast({ title: '您已被管理员拉黑', icon: 'none' })
+        return
+      }
 
-          // TODO: Send code to your server and exchange it for openid/session_key.
-          wx.setStorageSync(LOGIN_CODE_KEY, code)
+      const userProfile = getStoredProfile()
 
-          const userProfile = getStoredProfile()
+      if (userProfile) {
+        getApp<IAppOption>().globalData.userProfile = userProfile
+        this.completePendingAction(action)
+        return
+      }
 
-          if (userProfile) {
-            if (isProfileBlacklisted(userProfile)) {
-              wx.showToast({ title: '当前用户已被限制', icon: 'none' })
-              return
-            }
-
-            getApp<IAppOption>().globalData.userProfile = userProfile
-            this.completePendingAction(action)
-            return
-          }
-
-          this.setData({
-            showProfileSheet: true,
-            nickNameError: '',
-            steamIdError: '',
-            genderError: '',
-          })
-        },
-        fail: () => {
-          wx.showToast({ title: '进入失败，请稍后再试', icon: 'none' })
-        },
-        complete: () => {
-          this.setData({ isAuthorizing: false })
-        },
+      this.setData({
+        showProfileSheet: true,
+        nickNameError: '',
+        steamIdError: '',
+        genderError: '',
       })
     },
 
@@ -1061,21 +1309,28 @@ Component({
         avatarUrl: getGenderAvatar(gender),
       }
 
-      if (isProfileBlacklisted(userProfile)) {
-        this.setData({ isSaving: false })
-        wx.showToast({ title: '该 SteamID 已被限制', icon: 'none' })
-        return
-      }
-
-      wx.setStorageSync(PROFILE_KEY, userProfile)
-      getApp<IAppOption>().globalData.userProfile = userProfile
-
-      this.setData({
-        isSaving: false,
-        showProfileSheet: false,
+      apiRequest<Record<string, any> | { profileCompleted?: boolean }>({
+        url: '/api/me/profile',
+        method: 'PUT',
+        data: userProfile,
       })
+        .then(result => {
+          const normalizedProfile = normalizeUserProfile(result as Record<string, any>) || userProfile
+          wx.setStorageSync(PROFILE_KEY, normalizedProfile)
+          getApp<IAppOption>().globalData.userProfile = normalizedProfile
 
-      this.completePendingAction(this.data.pendingAction)
+          this.setData({
+            showProfileSheet: false,
+          })
+
+          this.completePendingAction(this.data.pendingAction)
+        })
+        .catch(error => {
+          wx.showToast({ title: error.message || '保存失败', icon: 'none' })
+        })
+        .finally(() => {
+          this.setData({ isSaving: false })
+        })
     },
 
     closeProfileSheet() {
@@ -1202,15 +1457,29 @@ Component({
             return
           }
 
-          allTakeovers = allTakeovers.filter(takeover => takeover.id !== takeoverId)
-          if (this.data.currentTakeover?.id === takeoverId) {
-            this.setData({
-              showDetailSheet: false,
-              currentTakeover: null,
+          this.setData({ isAuthorizing: true })
+          apiRequest<null>({
+            url: `/api/admin/takeovers/${takeoverId}`,
+            method: 'DELETE',
+            tokenType: 'admin',
+          })
+            .then(() => {
+              allTakeovers = allTakeovers.filter(takeover => takeover.id !== takeoverId)
+              if (this.data.currentTakeover?.id === takeoverId) {
+                this.setData({
+                  showDetailSheet: false,
+                  currentTakeover: null,
+                })
+              }
+              this.applyFilters(this.data.searchKeyword, this.data.activeTimeFilter)
+              wx.showToast({ title: '已删除', icon: 'success' })
             })
-          }
-          this.applyFilters(this.data.searchKeyword, this.data.activeTimeFilter)
-          wx.showToast({ title: '已删除', icon: 'success' })
+            .catch(error => {
+              wx.showToast({ title: error.message || '删除失败', icon: 'none' })
+            })
+            .finally(() => {
+              this.setData({ isAuthorizing: false })
+            })
         },
       })
     },
@@ -1255,74 +1524,78 @@ Component({
       }
 
       const schedule = this.buildCreateSchedule(scheduleType, time)
+      const payload = buildTakeoverPayload(title, limit, scheduleType, schedule, description)
+
       if (editingTakeover) {
-        const editedTakeover = createMockTakeover({
-          ...editingTakeover,
-          title,
-          limit,
-          schedule,
-          description,
+        this.setData({ isAuthorizing: true })
+        apiRequest<Record<string, any> | null>({
+          url: `/api/admin/takeovers/${editingTakeover.id}`,
+          method: 'PUT',
+          data: payload,
+          tokenType: 'admin',
         })
+          .then(result => {
+            const editedTakeover = result ? normalizeTakeover(result as Record<string, any>) : createMockTakeover({
+              ...editingTakeover,
+              title,
+              limit,
+              schedule,
+              description,
+            })
 
-        allTakeovers = allTakeovers.map(takeover =>
-          takeover.id === editingTakeover.id ? editedTakeover : takeover
-        )
+            allTakeovers = allTakeovers.map(takeover =>
+              takeover.id === editingTakeover.id ? editedTakeover : takeover
+            )
 
-        const currentTakeover = this.data.currentTakeover?.id === editingTakeover.id
-          ? editedTakeover
-          : this.data.currentTakeover
+            const currentTakeover = this.data.currentTakeover?.id === editingTakeover.id
+              ? editedTakeover
+              : this.data.currentTakeover
 
-        this.applyFilters(this.data.searchKeyword, this.data.activeTimeFilter)
-        this.setData({
-          showCreateSheet: false,
-          editingTakeoverId: '',
-          currentTakeover,
-          ...(currentTakeover
-            ? this.getDetailJoinState(currentTakeover)
-            : { detailJoinStatusText: '未加入', showDetailJoinButton: false }),
-          createTitle: '',
-          createLimit: '4',
-          createScheduleType: 'once',
-          createDate: '',
-          createStartDate: '',
-          createEndDate: '',
-          createTime: '',
-          createDescription: '',
-          createTitleError: '',
-          createLimitError: '',
-          createDateError: '',
-          createTimeError: '',
-          createDescriptionError: '',
-        })
-        wx.showToast({ title: '已保存', icon: 'success' })
+            this.applyFilters(this.data.searchKeyword, this.data.activeTimeFilter)
+            this.resetCreateSheet(currentTakeover)
+            wx.showToast({ title: '已保存', icon: 'success' })
+          })
+          .catch(error => {
+            wx.showToast({ title: error.message || '保存失败', icon: 'none' })
+          })
+          .finally(() => {
+            this.setData({ isAuthorizing: false })
+          })
         return
       }
 
-      const createdTakeover = createMockTakeover({
-        id: `local-${Date.now()}`,
-        title,
-        host: userProfile!.nickName,
-        joined: 1,
-        limit,
-        schedule,
-        description,
-        avatarUrl: userProfile!.avatarUrl,
-        participants: [userProfile!],
-        hasJoined: true,
+      this.setData({ isAuthorizing: true })
+      apiRequest<{ id?: string } | Record<string, any>>({
+        url: '/api/takeovers',
+        method: 'POST',
+        data: payload,
       })
+        .then(() => {
+          this.resetCreateSheet(null)
+          this.setData({
+            searchKeyword: '',
+            activeTimeFilter: 'all',
+            activeTimeFilterLabel: '今天',
+          })
+          this.loadTakeoversFromServer(1, true)
+          wx.showToast({ title: '已创建', icon: 'success' })
+        })
+        .catch(error => {
+          wx.showToast({ title: error.message || '创建失败', icon: 'none' })
+        })
+        .finally(() => {
+          this.setData({ isAuthorizing: false })
+        })
+    },
 
-      allTakeovers = [createdTakeover, ...allTakeovers]
-      const takeoverList = allTakeovers.slice(0, PAGE_SIZE)
-
+    resetCreateSheet(currentTakeover: Takeover | null) {
       this.setData({
-        takeoverList,
-        searchKeyword: '',
-        activeTimeFilter: 'all',
-        activeTimeFilterLabel: '今天',
-        pageIndex: 1,
-        hasMore: allTakeovers.length > takeoverList.length,
         showCreateSheet: false,
         editingTakeoverId: '',
+        currentTakeover,
+        ...(currentTakeover
+          ? this.getDetailJoinState(currentTakeover)
+          : { detailJoinStatusText: '未加入', showDetailJoinButton: false }),
         createTitle: '',
         createLimit: '4',
         createScheduleType: 'once',
@@ -1337,8 +1610,6 @@ Component({
         createTimeError: '',
         createDescriptionError: '',
       })
-
-      wx.showToast({ title: '已创建', icon: 'success' })
     },
 
     validateCreateDate() {
@@ -1426,18 +1697,38 @@ Component({
     },
 
     openTakeoverDetail(takeoverId: string) {
-      const takeover = allTakeovers.find(item => item.id === takeoverId)
-
-      if (!takeover) {
-        wx.showToast({ title: '接龙不存在', icon: 'none' })
-        return
-      }
-
-      this.setData({
-        currentTakeover: takeover,
-        ...this.getDetailJoinState(takeover),
-        showDetailSheet: true,
+      this.setData({ isAuthorizing: true })
+      apiRequest<Record<string, any>>({
+        url: `/api/takeovers/${takeoverId}`,
       })
+        .then(result => {
+          const takeover = normalizeTakeover(result)
+
+          allTakeovers = allTakeovers.map(item => (item.id === takeover.id ? takeover : item))
+          this.setData({
+            currentTakeover: takeover,
+            ...this.getDetailJoinState(takeover),
+            showDetailSheet: true,
+            takeoverList: allTakeovers,
+          })
+        })
+        .catch(error => {
+          const fallbackTakeover = allTakeovers.find(item => item.id === takeoverId)
+
+          if (fallbackTakeover) {
+            this.setData({
+              currentTakeover: fallbackTakeover,
+              ...this.getDetailJoinState(fallbackTakeover),
+              showDetailSheet: true,
+            })
+            return
+          }
+
+          wx.showToast({ title: error.message || '接龙不存在', icon: 'none' })
+        })
+        .finally(() => {
+          this.setData({ isAuthorizing: false })
+        })
     },
 
     getDetailJoinState(takeover: Takeover) {
@@ -1456,7 +1747,7 @@ Component({
         return '未加入'
       }
 
-      return takeover.participants.some(participant => participant.steamId === userProfile.steamId)
+      return takeover.hasJoined || takeover.participants.some(participant => participant.steamId === userProfile.steamId)
         ? '已加入'
         : '未加入'
     },
@@ -1501,8 +1792,9 @@ Component({
       }
 
       const steamId = event.currentTarget.dataset.steamid as string
+      const userId = event.currentTarget.dataset.userid as string
 
-      if (!steamId) {
+      if (!userId && !steamId) {
         return
       }
 
@@ -1516,80 +1808,68 @@ Component({
             return
           }
 
-          const blacklistedSteamIds = Array.from(new Set([...getStoredBlacklist(), steamId]))
-          wx.setStorageSync(BLACKLIST_KEY, blacklistedSteamIds)
-
-          allTakeovers = allTakeovers.map(takeover => {
-            const participants = takeover.participants.filter(participant => participant.steamId !== steamId)
-            const joined = Math.min(participants.length, takeover.limit)
-
-            return {
-              ...takeover,
-              joined,
-              participants,
-              participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 4),
-            }
+          this.setData({ isAuthorizing: true })
+          apiRequest<null>({
+            url: `/api/admin/users/${userId || steamId}/block`,
+            method: 'POST',
+            data: { reason: '管理员拉黑' },
+            tokenType: 'admin',
           })
+            .then(() => {
+              allTakeovers = allTakeovers.map(takeover => {
+                const participants = takeover.participants.filter(participant =>
+                  userId ? participant.userId !== userId : participant.steamId !== steamId
+                )
+                const joined = Math.min(participants.length, takeover.limit)
 
-          const currentTakeover = this.data.currentTakeover
-            ? allTakeovers.find(takeover => takeover.id === this.data.currentTakeover?.id) || null
-            : null
+                return {
+                  ...takeover,
+                  joined,
+                  participants,
+                  participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 4),
+                }
+              })
 
-          this.setData({
-            blacklistedSteamIds,
-            currentTakeover,
-            ...(currentTakeover
-              ? this.getDetailJoinState(currentTakeover)
-              : { detailJoinStatusText: '未加入', showDetailJoinButton: false }),
-          })
-          this.applyFilters(this.data.searchKeyword, this.data.activeTimeFilter)
-          wx.showToast({ title: '已拉黑', icon: 'success' })
+              const currentTakeover = this.data.currentTakeover
+                ? allTakeovers.find(takeover => takeover.id === this.data.currentTakeover?.id) || null
+                : null
+
+              this.setData({
+                currentTakeover,
+                ...(currentTakeover
+                  ? this.getDetailJoinState(currentTakeover)
+                  : { detailJoinStatusText: '未加入', showDetailJoinButton: false }),
+              })
+              this.loadTakeoversFromServer(1, true)
+              wx.showToast({ title: '已拉黑', icon: 'success' })
+            })
+            .catch(error => {
+              wx.showToast({ title: error.message || '拉黑失败', icon: 'none' })
+            })
+            .finally(() => {
+              this.setData({ isAuthorizing: false })
+            })
         },
       })
     },
 
     markTakeoverJoined(takeoverId: string) {
-      const userProfile = getStoredProfile()
-      const avatarUrl = userProfile?.avatarUrl || FEMALE_AVATAR_URL
-
-      allTakeovers = allTakeovers.map(takeover => {
-        if (takeover.id !== takeoverId || takeover.hasJoined) {
-          return takeover
-        }
-
-        return {
-          ...takeover,
-          hasJoined: true,
-          joined: Math.min(takeover.joined + 1, takeover.limit),
-          participantAvatars: [avatarUrl, ...takeover.participantAvatars].slice(0, 4),
-          participants:
-            userProfile && !takeover.participants.some(participant => participant.steamId === userProfile.steamId)
-              ? [userProfile, ...takeover.participants]
-              : takeover.participants,
-        }
+      this.setData({ isAuthorizing: true })
+      apiRequest<Record<string, any> | { hasJoined?: boolean; joinedCount?: number }>({
+        url: `/api/takeovers/${takeoverId}/join`,
+        method: 'POST',
       })
-
-      const filteredList = getFilteredTakeovers(
-        this.data.searchKeyword,
-        this.data.activeTimeFilter,
-        {
-          startDate: this.data.rangeStartDate,
-          endDate: this.data.rangeEndDate,
-        }
-      )
-      const takeoverList = filteredList.slice(0, this.data.pageIndex * PAGE_SIZE)
-      const currentTakeover = allTakeovers.find(takeover => takeover.id === takeoverId) || null
-
-      this.setData({
-        takeoverList,
-        currentTakeover,
-        ...(currentTakeover
-          ? this.getDetailJoinState(currentTakeover)
-          : { detailJoinStatusText: '未加入', showDetailJoinButton: false }),
-        hasMore: filteredList.length > takeoverList.length,
-      })
-
-      wx.showToast({ title: '已加入', icon: 'success' })
+        .then(() => {
+          wx.showToast({ title: '已加入', icon: 'success' })
+          this.loadTakeoversFromServer(1, true)
+          this.openTakeoverDetail(takeoverId)
+        })
+        .catch(error => {
+          wx.showToast({ title: error.message || '加入失败', icon: 'none' })
+        })
+        .finally(() => {
+          this.setData({ isAuthorizing: false })
+        })
     },
   },
 })
