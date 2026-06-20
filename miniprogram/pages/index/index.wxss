@@ -910,9 +910,19 @@ button::after {
 }
 
 .gender-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 44rpx;
+  height: 44rpx;
   display: block;
+}
+
+.gender-icon-male {
+  width: 50rpx;
+  height: 50rpx;
+}
+
+.gender-icon-female {
+  width: 46rpx;
+  height: 46rpx;
 }
 
 .label {

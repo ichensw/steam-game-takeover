@@ -178,11 +178,11 @@
       <view class="gender-grid">
         <button class="gender-option {{gender === 'male' ? 'gender-active' : ''}}" data-gender="male" bindtap="selectGender">
           <image class="gender-avatar" src="{{maleAvatarUrl}}" mode="aspectFill"></image>
-          <image class="gender-icon" src="/assets/gender-male.svg" mode="aspectFit"></image>
+          <image class="gender-icon gender-icon-male" src="/assets/gender-male.svg" mode="aspectFit"></image>
         </button>
         <button class="gender-option {{gender === 'female' ? 'gender-active' : ''}}" data-gender="female" bindtap="selectGender">
           <image class="gender-avatar" src="{{femaleAvatarUrl}}" mode="aspectFill"></image>
-          <image class="gender-icon" src="/assets/gender-female.svg" mode="aspectFit"></image>
+          <image class="gender-icon gender-icon-female" src="/assets/gender-female.svg" mode="aspectFit"></image>
         </button>
       </view>
       <text class="error" wx:if="{{genderError}}">{{genderError}}</text>
