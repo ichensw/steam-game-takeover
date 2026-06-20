@@ -68,7 +68,7 @@ const pickerPopover = document.querySelector("#pickerPopover")
 const scheduleFields = Array.from(document.querySelectorAll("[data-schedule-field]"))
 const startDateLabel = document.querySelector("#startDateLabel")
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 let activeFilter = "all"
 let selectedId = ""
 let takeovers = []

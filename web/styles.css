@@ -564,7 +564,7 @@ button {
 .takeover-list {
   display: grid;
   gap: 12px;
-  max-height: calc(10 * 138px + 9 * 12px);
+  max-height: calc(5 * 138px + 4 * 12px);
   overflow-y: auto;
   padding-right: 4px;
   scrollbar-width: thin;
