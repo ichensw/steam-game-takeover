@@ -916,8 +916,8 @@ button::after {
 }
 
 .gender-icon-male {
-  width: 50rpx;
-  height: 50rpx;
+  width: 58rpx;
+  height: 58rpx;
 }
 
 .gender-icon-female {
