@@ -1348,6 +1348,7 @@ Component({
       }
 
       const handleFile = (filePath: string) => {
+        console.log('avatar upload start:', filePath)
         this.setData({ isUploadingAvatar: true })
         uploadImage(filePath)
           .then(url => {
@@ -1374,10 +1375,17 @@ Component({
           mediaType: ['image'],
           sourceType: ['album', 'camera'],
           success: result => {
-            const filePath = result.tempFiles[0]?.tempFilePath
+            console.log('chooseMedia result:', result)
+            const firstFile = result.tempFiles[0] as any
+            const filePath = firstFile?.tempFilePath || firstFile?.path
             if (filePath) {
               handleFile(filePath)
+            } else {
+              wx.showToast({ title: '未获取到图片路径', icon: 'none' })
             }
+          },
+          fail: () => {
+            wx.showToast({ title: '选择图片失败', icon: 'none' })
           },
         })
         return
@@ -1387,10 +1395,16 @@ Component({
         count: 1,
         sourceType: ['album', 'camera'],
         success: result => {
+          console.log('chooseImage result:', result)
           const filePath = result.tempFilePaths[0]
           if (filePath) {
             handleFile(filePath)
+          } else {
+            wx.showToast({ title: '未获取到图片路径', icon: 'none' })
           }
+        },
+        fail: () => {
+          wx.showToast({ title: '选择图片失败', icon: 'none' })
         },
       })
     },

@@ -161,11 +161,11 @@
     <view class="close-button" bindtap="closeProfileSheet">×</view>
   </view>
 
-  <view class="avatar-preview {{gender ? '' : 'avatar-empty'}}" bindtap="chooseAvatar">
-    <image wx:if="{{avatarUrl}}" class="avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
-    <text wx:else class="avatar-placeholder">?</text>
-    <view class="avatar-edit-badge">
-      <image class="avatar-edit-icon" src="/assets/edit.svg" mode="aspectFit"></image>
+  <view class="avatar-preview {{gender ? '' : 'avatar-empty'}}" catchtap="chooseAvatar">
+    <image wx:if="{{avatarUrl}}" class="avatar" src="{{avatarUrl}}" mode="aspectFill" catchtap="chooseAvatar"></image>
+    <text wx:else class="avatar-placeholder" catchtap="chooseAvatar">?</text>
+    <view class="avatar-edit-badge" catchtap="chooseAvatar">
+      <image class="avatar-edit-icon" src="/assets/edit.svg" mode="aspectFit" catchtap="chooseAvatar"></image>
     </view>
     <view class="avatar-upload-mask" wx:if="{{isUploadingAvatar}}">
       <text class="avatar-upload-text">上传中</text>
