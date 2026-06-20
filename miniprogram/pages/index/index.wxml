@@ -332,15 +332,17 @@
 
   <scroll-view class="member-scroll" scroll-y>
     <view class="member-list">
-      <view class="member-row" wx:for="{{currentTakeover.participants}}" wx:key="steamId">
+      <view class="member-row {{!isAdmin ? 'member-row-user' : ''}}" wx:for="{{currentTakeover.participants}}" wx:key="steamId">
         <image class="detail-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
         <view class="member-info">
           <text class="member-name">{{item.nickName}}</text>
-          <text class="member-steam">SteamID：{{item.steamId}}</text>
+          <view class="member-steam-line">
+            <text class="member-steam">SteamID：{{item.steamId}}</text>
+            <button class="copy-button" wx:if="{{!isAdmin}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
+          </view>
         </view>
-        <view class="member-actions">
-          <button class="copy-button" wx:if="{{!isAdmin}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
-          <button class="block-button" wx:else data-userid="{{item.userId}}" data-steamid="{{item.steamId}}" bindtap="blockUser">拉黑</button>
+        <view class="member-actions" wx:if="{{isAdmin}}">
+          <button class="block-button" data-userid="{{item.userId}}" data-steamid="{{item.steamId}}" bindtap="blockUser">拉黑</button>
         </view>
       </view>
     </view>

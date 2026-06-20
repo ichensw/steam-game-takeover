@@ -128,7 +128,7 @@ const apiRequest = <T>(options: ApiRequestOptions) => {
         const body = response.data as ApiResponse<T>
 
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error(body?.code || body?.message || `请求失败：${response.statusCode}`))
+          reject(new Error((body && (body.code || body.message)) || `请求失败：${response.statusCode}`))
           return
         }
 
@@ -144,8 +144,9 @@ const apiRequest = <T>(options: ApiRequestOptions) => {
 
         resolve(response.data as T)
       },
-      fail: () => {
-        reject(new Error('网络请求失败'))
+      fail: error => {
+        console.error('api request failed:', `${API_BASE_URL}${options.url}`, error)
+        reject(new Error(error.errMsg || '网络请求失败'))
       },
     })
   })
@@ -169,20 +170,21 @@ const uploadImage = (filePath: string) => {
       success: response => {
         const body = parseUploadResponse(response.data)
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error(body?.message || body?.code || `上传失败：${response.statusCode}`))
+          reject(new Error((body && (body.message || body.code)) || `上传失败：${response.statusCode}`))
           return
         }
 
         const data = body && 'success' in body ? body.data : body
-        if (!data?.url) {
+        if (!data || !data.url) {
           reject(new Error('上传结果异常'))
           return
         }
 
         resolve(data.url)
       },
-      fail: () => {
-        reject(new Error('图片上传失败'))
+      fail: error => {
+        console.error('image upload failed:', `${API_BASE_URL}/api/uploads/image`, error)
+        reject(new Error(error.errMsg || '图片上传失败'))
       },
     })
   })
@@ -320,7 +322,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     schedule,
     scheduleText: rawTakeover.scheduleText || rawTakeover.schedule_text || formatSchedule(schedule),
     description: rawTakeover.description || '',
-    avatarUrl: rawTakeover.avatarUrl || rawTakeover.avatar_url || participants[0]?.avatarUrl || FEMALE_AVATAR_URL,
+    avatarUrl: rawTakeover.avatarUrl || rawTakeover.avatar_url || (participants[0] && participants[0].avatarUrl) || FEMALE_AVATAR_URL,
     participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 4),
     participants,
     hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
@@ -331,13 +333,13 @@ const normalizeTakeoverList = (rawData: unknown) => {
   const data = rawData as Record<string, any>
   const rawList = Array.isArray(rawData)
     ? rawData
-    : Array.isArray(data?.list)
+    : data && Array.isArray(data.list)
       ? data.list
-      : Array.isArray(data?.records)
+      : data && Array.isArray(data.records)
         ? data.records
         : []
   const list = rawList.map((item: Record<string, any>) => normalizeTakeover(item))
-  const total = Number(data?.total || data?.totalCount || data?.total_count || list.length)
+  const total = Number((data && (data.total || data.totalCount || data.total_count)) || list.length)
 
   return {
     list,
@@ -526,7 +528,7 @@ const getTimeFilterLabel = (timeFilter: TimeFilter) => {
   }
 
   const selectedFilter = timeFilters.find(filter => filter.value === timeFilter)
-  return selectedFilter?.label || '今天'
+  return (selectedFilter && selectedFilter.label) || '今天'
 }
 
 const isDateBeforeToday = (dateText: string) => {
@@ -808,6 +810,9 @@ const getServerTimeFilter = (timeFilter: TimeFilter, rangeFilter: RangeFilter) =
   return timeFilterMap[timeFilter]
 }
 
+const isPendingRangeFilter = (timeFilter: TimeFilter, rangeFilter: RangeFilter) =>
+  timeFilter === 'range' && (!rangeFilter.startDate || !rangeFilter.endDate)
+
 Component({
   data: {
     takeoverList: [] as Takeover[],
@@ -963,7 +968,7 @@ Component({
       const takeoverId = event.currentTarget.dataset.id as string
       const takeover = allTakeovers.find(item => item.id === takeoverId)
 
-      this.ensureProfile(takeover?.hasJoined ? 'view' : 'join', takeoverId)
+      this.ensureProfile(takeover && takeover.hasJoined ? 'view' : 'join', takeoverId)
     },
 
     createTakeover() {
@@ -1132,6 +1137,10 @@ Component({
         isLoadingMore: false,
       })
 
+      if (isPendingRangeFilter(timeFilter, rangeFilter)) {
+        return
+      }
+
       this.loadTakeoversFromServer(1, true, rangeFilter)
     },
 
@@ -1144,6 +1153,10 @@ Component({
         startDate: this.data.rangeStartDate,
         endDate: this.data.rangeEndDate,
       }
+      if (isPendingRangeFilter(this.data.activeTimeFilter, rangeFilter)) {
+        return
+      }
+
       const query = buildQuery({
         keyword: this.data.searchKeyword.trim(),
         timeFilter: getServerTimeFilter(this.data.activeTimeFilter, rangeFilter),
@@ -1209,6 +1222,13 @@ Component({
         this.data.isLoadingMore ||
         !this.data.hasMore
       ) {
+        return
+      }
+
+      if (isPendingRangeFilter(this.data.activeTimeFilter, {
+        startDate: this.data.rangeStartDate,
+        endDate: this.data.rangeEndDate,
+      })) {
         return
       }
 
@@ -1694,7 +1714,7 @@ Component({
           })
             .then(() => {
               allTakeovers = allTakeovers.filter(takeover => takeover.id !== takeoverId)
-              if (this.data.currentTakeover?.id === takeoverId) {
+              if (this.data.currentTakeover && this.data.currentTakeover.id === takeoverId) {
                 this.setData({
                   showDetailSheet: false,
                   currentTakeover: null,
@@ -1776,7 +1796,7 @@ Component({
               takeover.id === editingTakeover.id ? editedTakeover : takeover
             )
 
-            const currentTakeover = this.data.currentTakeover?.id === editingTakeover.id
+            const currentTakeover = this.data.currentTakeover && this.data.currentTakeover.id === editingTakeover.id
               ? editedTakeover
               : this.data.currentTakeover
 
@@ -2074,7 +2094,7 @@ Component({
               })
 
               const currentTakeover = this.data.currentTakeover
-                ? allTakeovers.find(takeover => takeover.id === this.data.currentTakeover?.id) || null
+                ? allTakeovers.find(takeover => takeover.id === (this.data.currentTakeover && this.data.currentTakeover.id)) || null
                 : null
 
               this.setData({
