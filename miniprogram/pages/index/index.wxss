@@ -45,8 +45,7 @@ button::after {
 .note-text,
 .sheet-title,
 .label,
-.error,
-.gender-label {
+.error {
   display: block;
 }
 
@@ -889,10 +888,10 @@ button::after {
   border-radius: 26rpx;
 }
 
-.gender-label {
-  color: #f7f8ff;
-  font-size: 27rpx;
-  font-weight: 500;
+.gender-icon {
+  width: 40rpx;
+  height: 40rpx;
+  display: block;
 }
 
 .label {
