@@ -80,8 +80,21 @@ type LoginResult = {
   isBlocked?: boolean
 }
 
+type UploadResult = {
+  url?: string
+  objectKey?: string
+}
+
 const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
 const getAdminToken = () => wx.getStorageSync(ADMIN_TOKEN_KEY) as string
+
+const parseUploadResponse = (value: string) => {
+  try {
+    return JSON.parse(value) as ApiResponse<UploadResult> | UploadResult
+  } catch {
+    return null
+  }
+}
 
 const apiRequest = <T>(options: ApiRequestOptions) => {
   return new Promise<T>((resolve, reject) => {
@@ -126,6 +139,43 @@ const apiRequest = <T>(options: ApiRequestOptions) => {
       },
       fail: () => {
         reject(new Error('网络请求失败'))
+      },
+    })
+  })
+}
+
+const uploadImage = (filePath: string) => {
+  return new Promise<string>((resolve, reject) => {
+    const token = getUserToken()
+    if (!token) {
+      reject(new Error('请先登录'))
+      return
+    }
+
+    wx.uploadFile({
+      url: `${API_BASE_URL}/api/uploads/image`,
+      filePath,
+      name: 'file',
+      header: {
+        Authorization: `Bearer ${token}`,
+      },
+      success: response => {
+        const body = parseUploadResponse(response.data)
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          reject(new Error(body?.message || body?.code || `上传失败：${response.statusCode}`))
+          return
+        }
+
+        const data = body && 'success' in body ? body.data : body
+        if (!data?.url) {
+          reject(new Error('上传结果异常'))
+          return
+        }
+
+        resolve(data.url)
+      },
+      fail: () => {
+        reject(new Error('图片上传失败'))
       },
     })
   })
@@ -705,7 +755,7 @@ const getStoredProfile = (): UserProfile | null => {
       nickName: userProfile.nickName,
       steamId: userProfile.steamId,
       gender: userProfile.gender,
-      avatarUrl: getGenderAvatar(userProfile.gender),
+      avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
     }
   }
 
@@ -745,6 +795,7 @@ Component({
     femaleAvatarUrl: FEMALE_AVATAR_URL,
     isAuthorizing: false,
     isSaving: false,
+    isUploadingAvatar: false,
     isBlocked: false,
     blockedMessage: '',
     isAdmin: false,
@@ -1200,8 +1251,54 @@ Component({
 
       this.setData({
         gender,
-        avatarUrl: getGenderAvatar(gender),
+        avatarUrl: this.data.avatarUrl || getGenderAvatar(gender),
         genderError: '',
+      })
+    },
+
+    chooseAvatar() {
+      if (this.data.isUploadingAvatar) {
+        return
+      }
+
+      const handleFile = (filePath: string) => {
+        this.setData({ isUploadingAvatar: true })
+        uploadImage(filePath)
+          .then(url => {
+            this.setData({ avatarUrl: url })
+          })
+          .catch(error => {
+            wx.showToast({ title: error.message || '头像上传失败', icon: 'none' })
+          })
+          .finally(() => {
+            this.setData({ isUploadingAvatar: false })
+          })
+      }
+
+      if (wx.chooseMedia) {
+        wx.chooseMedia({
+          count: 1,
+          mediaType: ['image'],
+          sourceType: ['album', 'camera'],
+          success: result => {
+            const filePath = result.tempFiles[0]?.tempFilePath
+            if (filePath) {
+              handleFile(filePath)
+            }
+          },
+        })
+        return
+      }
+
+      wx.chooseImage({
+        count: 1,
+        sourceType: ['album', 'camera'],
+        success: result => {
+          const filePath = result.tempFilePaths[0]
+          if (filePath) {
+            handleFile(filePath)
+          }
+        },
       })
     },
 

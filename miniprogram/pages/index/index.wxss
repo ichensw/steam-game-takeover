@@ -689,6 +689,7 @@ button::after {
 .avatar-preview {
   width: 128rpx;
   height: 128rpx;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -696,6 +697,21 @@ button::after {
   overflow: hidden;
   border-radius: 36rpx;
   background: rgba(255, 255, 255, 0.08);
+}
+
+.avatar-upload-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 13, 24, 0.68);
+}
+
+.avatar-upload-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
 .avatar-empty {

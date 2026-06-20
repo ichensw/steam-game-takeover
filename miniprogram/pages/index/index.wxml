@@ -153,9 +153,12 @@
     <view class="close-button" bindtap="closeProfileSheet">×</view>
   </view>
 
-  <view class="avatar-preview {{gender ? '' : 'avatar-empty'}}">
+  <view class="avatar-preview {{gender ? '' : 'avatar-empty'}}" bindtap="chooseAvatar">
     <image wx:if="{{avatarUrl}}" class="avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
     <text wx:else class="avatar-placeholder">?</text>
+    <view class="avatar-upload-mask" wx:if="{{isUploadingAvatar}}">
+      <text class="avatar-upload-text">上传中</text>
+    </view>
   </view>
 
   <view class="form">
