@@ -152,6 +152,10 @@ const getGenderAvatar = (gender: Gender | '') => {
   return ''
 }
 
+const toApiGender = (gender: Gender) => {
+  return gender === 'male' ? 1 : 2
+}
+
 const normalizeGender = (gender: unknown): Gender | '' => {
   if (gender === 'female' || gender === 2 || gender === '2' || gender === '女') {
     return 'female'
@@ -1312,7 +1316,12 @@ Component({
       apiRequest<Record<string, any> | { profileCompleted?: boolean }>({
         url: '/api/me/profile',
         method: 'PUT',
-        data: userProfile,
+        data: {
+          nickName,
+          steamId,
+          gender: toApiGender(gender),
+          avatarUrl: userProfile.avatarUrl,
+        },
       })
         .then(result => {
           const normalizedProfile = normalizeUserProfile(result as Record<string, any>) || userProfile
