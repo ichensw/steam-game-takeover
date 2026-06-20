@@ -138,6 +138,14 @@
   <image class="admin-float-icon" src="/assets/edit.svg" mode="aspectFit"></image>
 </view>
 
+<view class="profile-float" bindtap="openProfileEditor">
+  <image class="profile-float-avatar" src="{{avatarUrl || femaleAvatarUrl}}" mode="aspectFill"></image>
+  <view class="profile-float-copy">
+    <text class="profile-float-name">{{nickName || '编辑个人信息'}}</text>
+    <text class="profile-float-meta">{{steamId || '昵称 / SteamID'}}</text>
+  </view>
+</view>
+
 <view class="global-loading" wx:if="{{isAuthorizing}}">
   <view class="loading-card">
     <view class="loading-spinner"></view>

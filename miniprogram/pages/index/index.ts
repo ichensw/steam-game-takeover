@@ -1242,6 +1242,58 @@ Component({
       })
     },
 
+    openProfileEditor() {
+      if (this.data.isBlocked) {
+        wx.showToast({ title: '您已被管理员拉黑', icon: 'none' })
+        return
+      }
+
+      this.setData({
+        pendingAction: '',
+        pendingTakeoverId: '',
+        nickNameError: '',
+        steamIdError: '',
+        genderError: '',
+      })
+
+      const openSheet = (profile?: UserProfile | null) => {
+        if (profile) {
+          wx.setStorageSync(PROFILE_KEY, profile)
+          getApp<IAppOption>().globalData.userProfile = profile
+          this.setData({
+            nickName: profile.nickName,
+            steamId: profile.steamId,
+            gender: profile.gender,
+            avatarUrl: profile.avatarUrl,
+          })
+        }
+
+        this.setData({
+          showProfileSheet: true,
+          avatarUrl: this.data.avatarUrl || getGenderAvatar(this.data.gender),
+        })
+      }
+
+      if (!getUserToken()) {
+        openSheet(getStoredProfile())
+        return
+      }
+
+      this.setData({ isAuthorizing: true })
+      apiRequest<Record<string, any>>({
+        url: '/api/me/profile',
+      })
+        .then(result => {
+          openSheet(normalizeUserProfile(result))
+        })
+        .catch(() => {
+          openSheet(getStoredProfile())
+        })
+        .finally(() => {
+          this.setData({ isAuthorizing: false })
+        })
+    },
+
     selectGender(event: WechatMiniprogram.TouchEvent) {
       const gender = event.currentTarget.dataset.gender as Gender
 
@@ -1407,7 +1459,7 @@ Component({
         nickName,
         steamId,
         gender,
-        avatarUrl: getGenderAvatar(gender),
+        avatarUrl: this.data.avatarUrl || getGenderAvatar(gender),
       }
 
       apiRequest<Record<string, any> | { profileCompleted?: boolean }>({
@@ -1426,6 +1478,10 @@ Component({
           getApp<IAppOption>().globalData.userProfile = normalizedProfile
 
           this.setData({
+            nickName: normalizedProfile.nickName,
+            steamId: normalizedProfile.steamId,
+            gender: normalizedProfile.gender,
+            avatarUrl: normalizedProfile.avatarUrl,
             showProfileSheet: false,
           })
 

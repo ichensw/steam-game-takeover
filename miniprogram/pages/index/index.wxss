@@ -538,6 +538,65 @@ button::after {
   display: block;
 }
 
+.profile-float {
+  position: fixed;
+  right: 32rpx;
+  bottom: calc(34rpx + env(safe-area-inset-bottom));
+  z-index: 8;
+  max-width: 432rpx;
+  height: 78rpx;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 0 18rpx 0 12rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 999rpx;
+  background: rgba(24, 27, 37, 0.92);
+  box-shadow: 0 12rpx 28rpx rgba(0, 0, 0, 0.22);
+  box-sizing: border-box;
+  backdrop-filter: blur(12rpx);
+}
+
+.profile-float:active {
+  opacity: 0.78;
+}
+
+.profile-float-avatar {
+  width: 54rpx;
+  height: 54rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.profile-float-copy {
+  min-width: 0;
+}
+
+.profile-float-name,
+.profile-float-meta {
+  display: block;
+  max-width: 330rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-float-name {
+  color: #f7f8ff;
+  font-size: 24rpx;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.profile-float-meta {
+  margin-top: 2rpx;
+  color: rgba(247, 248, 255, 0.48);
+  font-size: 20rpx;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
 .global-loading {
   position: fixed;
   inset: 0;
