@@ -95,6 +95,11 @@ const getTakeoverTimeFilter = () => {
   return getPickerValue(rangeStartDate) || getPickerValue(rangeEndDate) ? "custom_range" : "date_range"
 }
 
+const hasCompleteRangeFilter = () => {
+  if (activeFilter !== "range") return true
+  return !!getPickerValue(rangeStartDate) && !!getPickerValue(rangeEndDate)
+}
+
 const syncRangeFilter = () => {
   rangeFilter.hidden = activeFilter !== "range"
 }
@@ -512,6 +517,18 @@ const fetchTakeovers = async ({ append = false } = {}) => {
     currentPage = 1
     countEl.textContent = "未登录"
     listEl.innerHTML = '<div class="empty">登录后加载真实接龙列表。</div>'
+    syncPagination()
+    renderDetail(null)
+    return
+  }
+
+  if (!hasCompleteRangeFilter()) {
+    takeovers = []
+    totalTakeovers = 0
+    currentPage = 1
+    selectedId = ""
+    countEl.textContent = "0 个接龙"
+    listEl.innerHTML = '<div class="empty">请选择完整的开始和结束日期。</div>'
     syncPagination()
     renderDetail(null)
     return
