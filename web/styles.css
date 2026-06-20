@@ -435,7 +435,9 @@ button {
   display: flex;
   gap: 10px;
   margin-top: 16px;
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   padding: 4px 2px 8px;
   scrollbar-width: none;
 }
@@ -491,10 +493,12 @@ button {
   color: var(--muted);
   font-size: 13px;
   font-weight: 850;
+  white-space: nowrap;
 }
 
 .range-filter input {
   width: 138px;
+  min-width: 0;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -1703,36 +1707,69 @@ button {
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 720px) {
   .topbar,
   .hero,
   .filters,
   .range-filter,
   .content {
-    width: calc(100vw - 24px);
+    width: 100%;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 14px;
+    padding: 4px 0 10px;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .filter {
+    width: 100%;
+    height: 40px;
+    padding: 0 8px;
+    justify-content: center;
+    border-radius: 15px;
+    font-size: 13px;
   }
 
   .range-filter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: stretch;
-    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 0;
   }
 
   .range-filter label {
-    flex: 1 1 150px;
+    min-width: 0;
+    height: 46px;
+    padding: 0 9px;
+    border-radius: 18px;
+    gap: 6px;
+    font-size: 12px;
   }
 
   .range-filter input {
     width: 100%;
+    min-width: 0;
+    font-size: 13px;
   }
 
   .range-clear {
-    flex: 1 1 100%;
+    grid-column: 1 / -1;
+    height: 46px;
+    border-radius: 18px;
   }
 
   .picker-popover {
     max-width: calc(100vw - 24px);
   }
+}
 
+@media (max-width: 620px) {
   .hero h1 {
     font-size: 31px;
     line-height: 1.12;
