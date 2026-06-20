@@ -85,6 +85,13 @@ type UploadResult = {
   objectKey?: string
 }
 
+type ProfilePayload = {
+  nickName: string
+  steamId: string
+  gender: Gender
+  avatarUrl: string
+}
+
 const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
 const getAdminToken = () => wx.getStorageSync(ADMIN_TOKEN_KEY) as string
 
@@ -1345,9 +1352,16 @@ Component({
         uploadImage(filePath)
           .then(url => {
             this.setData({ avatarUrl: url })
+            const nickName = this.data.nickName.trim()
+            const steamId = this.data.steamId.trim()
+            const gender = this.data.gender
+
+            if (nickName && steamId && gender) {
+              return this.persistProfile({ nickName, steamId, gender, avatarUrl: url }, false)
+            }
           })
           .catch(error => {
-            wx.showToast({ title: error.message || '头像上传失败', icon: 'none' })
+            wx.showToast({ title: error.message || '头像上传或保存失败', icon: 'none' })
           })
           .finally(() => {
             this.setData({ isUploadingAvatar: false })
@@ -1378,6 +1392,33 @@ Component({
             handleFile(filePath)
           }
         },
+      })
+    },
+
+    persistProfile(userProfile: ProfilePayload, closeSheet: boolean) {
+      return apiRequest<Record<string, any> | { profileCompleted?: boolean }>({
+        url: '/api/me/profile',
+        method: 'PUT',
+        data: {
+          nickName: userProfile.nickName,
+          steamId: userProfile.steamId,
+          gender: toApiGender(userProfile.gender),
+          avatarUrl: userProfile.avatarUrl,
+        },
+      }).then(result => {
+        const normalizedProfile = normalizeUserProfile(result as Record<string, any>) || userProfile
+        wx.setStorageSync(PROFILE_KEY, normalizedProfile)
+        getApp<IAppOption>().globalData.userProfile = normalizedProfile
+
+        this.setData({
+          nickName: normalizedProfile.nickName,
+          steamId: normalizedProfile.steamId,
+          gender: normalizedProfile.gender,
+          avatarUrl: normalizedProfile.avatarUrl,
+          showProfileSheet: closeSheet ? false : this.data.showProfileSheet,
+        })
+
+        return normalizedProfile
       })
     },
 
@@ -1516,29 +1557,8 @@ Component({
         avatarUrl: this.data.avatarUrl || getGenderAvatar(gender),
       }
 
-      apiRequest<Record<string, any> | { profileCompleted?: boolean }>({
-        url: '/api/me/profile',
-        method: 'PUT',
-        data: {
-          nickName,
-          steamId,
-          gender: toApiGender(gender),
-          avatarUrl: userProfile.avatarUrl,
-        },
-      })
-        .then(result => {
-          const normalizedProfile = normalizeUserProfile(result as Record<string, any>) || userProfile
-          wx.setStorageSync(PROFILE_KEY, normalizedProfile)
-          getApp<IAppOption>().globalData.userProfile = normalizedProfile
-
-          this.setData({
-            nickName: normalizedProfile.nickName,
-            steamId: normalizedProfile.steamId,
-            gender: normalizedProfile.gender,
-            avatarUrl: normalizedProfile.avatarUrl,
-            showProfileSheet: false,
-          })
-
+      this.persistProfile(userProfile, true)
+        .then(() => {
           this.completePendingAction(this.data.pendingAction)
         })
         .catch(error => {
