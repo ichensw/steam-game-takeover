@@ -772,6 +772,27 @@ button::after {
   font-weight: 700;
 }
 
+.avatar-edit-badge {
+  position: absolute;
+  right: 8rpx;
+  bottom: 8rpx;
+  width: 38rpx;
+  height: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: rgba(24, 27, 37, 0.88);
+  box-shadow: 0 6rpx 14rpx rgba(0, 0, 0, 0.24);
+}
+
+.avatar-edit-icon {
+  width: 22rpx;
+  height: 22rpx;
+  display: block;
+}
+
 .avatar-empty {
   border: 2rpx dashed rgba(255, 255, 255, 0.18);
 }
