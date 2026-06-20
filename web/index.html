@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>兔兔窝接龙</title>
-    <link rel="stylesheet" href="./styles.css?v=20260621-17" />
+    <link rel="stylesheet" href="./styles.css?v=20260621-18" />
   </head>
   <body>
     <main class="app" data-theme="light">
@@ -259,8 +259,26 @@
       </form>
     </dialog>
 
+    <dialog class="modal" id="unblockConfirmModal">
+      <form class="modal-card compact-modal" id="unblockConfirmForm">
+        <div class="modal-heading">
+          <h2>移除拉黑</h2>
+          <button class="icon-button" type="button" data-close="unblockConfirmModal" aria-label="关闭">×</button>
+        </div>
+        <div class="warning-panel soft-warning">
+          <strong>确认移除该用户的拉黑状态吗？</strong>
+          <span>移除后对方将恢复接龙查看和操作权限。</span>
+        </div>
+        <p class="form-note" id="unblockTargetText"></p>
+        <div class="modal-actions">
+          <button class="secondary-action" type="button" data-close="unblockConfirmModal">取消</button>
+          <button class="primary-action" type="submit">确认移除</button>
+        </div>
+      </form>
+    </dialog>
+
     <div class="picker-popover" id="pickerPopover" hidden></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=20260621-26"></script>
+    <script src="./app.js?v=20260621-27"></script>
   </body>
 </html>

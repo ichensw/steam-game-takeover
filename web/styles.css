@@ -1333,6 +1333,24 @@ button {
   font-weight: 750;
 }
 
+.warning-panel.soft-warning {
+  border-color: rgba(119, 217, 124, 0.3);
+  background:
+    linear-gradient(135deg, rgba(160, 240, 163, 0.18), rgba(155, 128, 244, 0.12)),
+    var(--surface);
+  color: var(--text);
+}
+
+.warning-panel.soft-warning span {
+  color: var(--muted);
+}
+
+.modal-actions .primary-action {
+  height: 46px;
+  justify-content: center;
+  border-radius: 16px;
+}
+
 .avatar-picker {
   cursor: pointer;
 }

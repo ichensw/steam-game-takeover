@@ -35,6 +35,7 @@ const createModal = document.querySelector("#createModal")
 const adminModal = document.querySelector("#adminModal")
 const blockedUsersModal = document.querySelector("#blockedUsersModal")
 const blockConfirmModal = document.querySelector("#blockConfirmModal")
+const unblockConfirmModal = document.querySelector("#unblockConfirmModal")
 const detailModal = document.querySelector("#detailModal")
 const detailModalContent = document.querySelector("#detailModalContent")
 const loginForm = document.querySelector("#loginForm")
@@ -44,6 +45,8 @@ const createForm = document.querySelector("#createForm")
 const adminForm = document.querySelector("#adminForm")
 const blockConfirmForm = document.querySelector("#blockConfirmForm")
 const blockTargetText = document.querySelector("#blockTargetText")
+const unblockConfirmForm = document.querySelector("#unblockConfirmForm")
+const unblockTargetText = document.querySelector("#unblockTargetText")
 const blockedPanel = document.querySelector("#blockedPanel")
 const blockedUsersPanel = document.querySelector("#blockedUsersPanel")
 const blockedSearchInput = document.querySelector("#blockedSearchInput")
@@ -81,6 +84,7 @@ let adminMode = !!localStorage.getItem(ADMIN_TOKEN_KEY)
 let selectedAvatarFile = null
 let selectedAvatarObjectUrl = ""
 let pendingBlockUser = null
+let pendingUnblockUser = null
 const mobileDetailQuery = window.matchMedia("(max-width: 900px)")
 let activePickerInput = null
 let pickerMonth = new Date()
@@ -942,9 +946,15 @@ const submitBlockConfirm = async event => {
   blockConfirmModal.close()
 }
 
+const openUnblockConfirm = userId => {
+  if (!userId || !getAdminToken()) return
+  const row = pendingUnblockUser || { userId }
+  unblockTargetText.textContent = row.nickname || row.steamId ? `将恢复：${row.nickname || "未命名用户"}（SteamID：${row.steamId || "未填写"}）` : `将恢复用户 ID：${userId}`
+  unblockConfirmModal.showModal()
+}
+
 const unblockUser = async userId => {
   if (!userId || !getAdminToken()) return
-  if (!window.confirm("确定移除该用户的拉黑状态吗？移除后对方将恢复接龙查看和操作权限。")) return
   try {
     await apiRequest(`/api/admin/users/${userId}/unblock`, { method: "POST", admin: true })
     showToast("已解除拉黑")
@@ -953,6 +963,14 @@ const unblockUser = async userId => {
   } catch (error) {
     showToast(error.message)
   }
+}
+
+const submitUnblockConfirm = async event => {
+  event.preventDefault()
+  if (!pendingUnblockUser?.userId) return
+  await unblockUser(pendingUnblockUser.userId)
+  pendingUnblockUser = null
+  unblockConfirmModal.close()
 }
 
 const blockedUsersMarkup = list =>
@@ -965,7 +983,7 @@ const blockedUsersMarkup = list =>
                 <strong>${escapeHtml(user.nickname || user.steamId || user.userId)}</strong>
                 <small>${escapeHtml(user.steamId || "未填写 SteamID")}${user.reason ? ` · ${escapeHtml(user.reason)}` : ""}</small>
               </span>
-              <button class="tiny-action" type="button" data-unblock="${escapeHtml(user.userId)}">移除拉黑</button>
+              <button class="tiny-action" type="button" data-unblock="${escapeHtml(user.userId)}" data-name="${escapeHtml(user.nickname || "")}" data-steam="${escapeHtml(user.steamId || "")}">移除拉黑</button>
             </div>
           `,
         )
@@ -1029,8 +1047,16 @@ detailModalContent.addEventListener("click", handleDetailAction)
 mobileDetailQuery.addEventListener("change", closeMobileDetailAfterRefresh)
 
 blockedUsersPanel?.addEventListener("click", event => {
-  const userId = event.target.closest("[data-unblock]")?.dataset.unblock
-  if (userId) unblockUser(userId)
+  const button = event.target.closest("[data-unblock]")
+  const userId = button?.dataset.unblock
+  if (userId) {
+    pendingUnblockUser = {
+      userId,
+      nickname: button.dataset.name || "",
+      steamId: button.dataset.steam || "",
+    }
+    openUnblockConfirm(userId)
+  }
 })
 
 let blockedSearchTimer = 0
@@ -1246,9 +1272,14 @@ registerForm.addEventListener("submit", submitRegister)
 createForm.addEventListener("submit", submitCreate)
 adminForm.addEventListener("submit", submitAdmin)
 blockConfirmForm?.addEventListener("submit", submitBlockConfirm)
+unblockConfirmForm?.addEventListener("submit", submitUnblockConfirm)
 
 blockConfirmModal?.addEventListener("close", () => {
   pendingBlockUser = null
+})
+
+unblockConfirmModal?.addEventListener("close", () => {
+  pendingUnblockUser = null
 })
 
 const bootstrap = async () => {
