@@ -916,6 +916,11 @@ const blockUser = async (userId, reason) => {
   try {
     await apiRequest(`/api/admin/users/${userId}/block`, { method: "POST", json: { reason }, admin: true })
     showToast("已拉黑用户")
+    if (selectedDetail?.members) {
+      selectedDetail.members = selectedDetail.members.filter(member => String(member.userId) !== String(userId))
+      selectedDetail.joined = selectedDetail.members.length
+      renderDetail(selectedDetail)
+    }
     await fetchTakeovers()
     await fetchDetail(selectedId)
     if (blockedUsersModal.open) await fetchBlockedUsers()
