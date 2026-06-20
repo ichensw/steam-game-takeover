@@ -493,9 +493,9 @@ const hasMoreTakeovers = () => getToken() && totalTakeovers > 0 && takeovers.len
 const syncPagination = () => {
   const hasMore = hasMoreTakeovers()
   if (loadMoreButton) {
-    loadMoreButton.hidden = !hasMore
-    loadMoreButton.disabled = loading || loadingMore
-    loadMoreButton.textContent = loadingMore ? "加载中..." : "加载更多"
+    loadMoreButton.hidden = !hasMore && !loadingMore
+    loadMoreButton.disabled = loading || loadingMore || !hasMore
+    loadMoreButton.textContent = loadingMore ? "加载中..." : ""
   }
   if (!getToken()) return
   countEl.textContent = totalTakeovers > takeovers.length ? `${takeovers.length}/${totalTakeovers} 个接龙` : `${takeovers.length} 个接龙`
