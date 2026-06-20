@@ -488,8 +488,10 @@ const fetchProfile = async () => {
   if (profile?.blocked) statusText.textContent = "当前账号已被限制使用，无法查看和操作接龙。"
 }
 
+const hasMoreTakeovers = () => getToken() && totalTakeovers > 0 && takeovers.length < totalTakeovers
+
 const syncPagination = () => {
-  const hasMore = getToken() && takeovers.length < totalTakeovers
+  const hasMore = hasMoreTakeovers()
   if (loadMoreButton) {
     loadMoreButton.hidden = !hasMore
     loadMoreButton.disabled = loading || loadingMore
@@ -508,6 +510,11 @@ const fetchTakeovers = async ({ append = false } = {}) => {
     listEl.innerHTML = '<div class="empty">登录后加载真实接龙列表。</div>'
     syncPagination()
     renderDetail(null)
+    return
+  }
+
+  if (append && !hasMoreTakeovers()) {
+    syncPagination()
     return
   }
 
@@ -534,7 +541,7 @@ const fetchTakeovers = async ({ append = false } = {}) => {
     )
     const list = Array.isArray(data) ? data : data?.list || []
     const normalized = list.map(normalizeTakeover)
-    totalTakeovers = Number(Array.isArray(data) ? normalized.length : data?.total || normalized.length)
+    totalTakeovers = Number(Array.isArray(data) ? normalized.length : data?.total ?? normalized.length)
     currentPage = nextPage
     takeovers = append ? [...takeovers, ...normalized] : normalized
     if (!append && (!selectedId || !takeovers.some(item => item.id === selectedId))) selectedId = takeovers[0]?.id || ""
@@ -996,14 +1003,14 @@ listEl.addEventListener("click", async event => {
 })
 
 loadMoreButton?.addEventListener("click", () => {
-  if (!loading && !loadingMore) fetchTakeovers({ append: true })
+  if (!loading && !loadingMore && hasMoreTakeovers()) fetchTakeovers({ append: true })
 })
 
 if (loadMoreButton && "IntersectionObserver" in window) {
   loadMoreObserver = new IntersectionObserver(
     entries => {
       const [entry] = entries
-      if (entry?.isIntersecting && !loadMoreButton.hidden && !loadMoreButton.disabled && !loading && !loadingMore) {
+      if (entry?.isIntersecting && !loadMoreButton.hidden && !loadMoreButton.disabled && !loading && !loadingMore && hasMoreTakeovers()) {
         fetchTakeovers({ append: true })
       }
     },
