@@ -1,0 +1,375 @@
+<scroll-view
+  class="page"
+  scroll-y
+  type="list"
+  refresher-enabled
+  refresher-triggered="{{isRefreshing}}"
+  lower-threshold="100"
+  bindrefresherrefresh="refreshTakeovers"
+  bindscrolltolower="loadMoreTakeovers"
+>
+  <view class="shell">
+    <view class="topbar">
+      <view class="brand-copy">
+        <text class="title">兔兔窝游戏接龙</text>
+        <text class="subtitle">寻找同好，玩在一起</text>
+      </view>
+      <button class="create-button" bindtap="createTakeover">创建接龙</button>
+    </view>
+
+    <view class="helper-card">
+      <image class="helper-avatar" src="{{femaleAvatarUrl}}" mode="aspectFill"></image>
+      <view class="helper-copy">
+        <text class="helper-kicker">接龙小助手</text>
+        <text class="helper-text">看看大家的游戏局，想玩就加入。</text>
+      </view>
+    </view>
+
+    <view class="filter-panel">
+      <view class="search-box">
+        <text class="search-icon">⌕</text>
+        <input
+          class="search-input"
+          value="{{searchKeyword}}"
+          placeholder="搜索队伍名称或介绍"
+          placeholder-class="placeholder"
+          bindinput="handleSearchInput"
+        />
+        <view class="search-clear" wx:if="{{searchKeyword}}" bindtap="clearSearch">×</view>
+      </view>
+
+      <view class="time-filter-list">
+        <view class="time-filter {{activeTimeFilter === 'all' ? 'time-filter-active' : ''}}" bindtap="selectAllTimeFilter">全部</view>
+        <view class="time-filter time-filter-select {{activeTimeFilter !== 'all' ? 'time-filter-active' : ''}}" bindtap="toggleTimeFilterDropdown">
+          <text>{{activeTimeFilterLabel}}</text>
+          <view class="filter-caret {{showTimeFilterDropdown ? 'filter-caret-open' : ''}}"></view>
+        </view>
+      </view>
+
+      <view class="time-dropdown" wx:if="{{showTimeFilterDropdown}}">
+        <view
+          class="time-dropdown-item {{activeTimeFilter === item.value ? 'time-dropdown-active' : ''}}"
+          wx:for="{{timeFilters}}"
+          wx:key="value"
+          data-value="{{item.value}}"
+          bindtap="selectTimeFilter"
+        >
+          {{item.label}}
+        </view>
+      </view>
+
+      <view class="range-filter-panel" wx:if="{{activeTimeFilter === 'range'}}">
+        <picker mode="date" value="{{rangeStartDate}}" start="{{todayDate}}" bindchange="handleRangeStartChange">
+          <view class="range-picker">
+            <text class="range-picker-label">开始</text>
+            <text class="range-picker-value">{{rangeStartDate || '选择日期'}}</text>
+          </view>
+        </picker>
+        <picker mode="date" value="{{rangeEndDate}}" start="{{rangeStartDate || todayDate}}" bindchange="handleRangeEndChange">
+          <view class="range-picker">
+            <text class="range-picker-label">结束</text>
+            <text class="range-picker-value">{{rangeEndDate || '选择日期'}}</text>
+          </view>
+        </picker>
+        <view class="range-clear" wx:if="{{rangeStartDate || rangeEndDate}}" bindtap="clearRangeFilter">清空日期</view>
+      </view>
+    </view>
+
+    <view class="takeover-list">
+      <view class="takeover-card" wx:for="{{takeoverList}}" wx:key="id">
+        <view class="card-more" wx:if="{{isAdmin}}" data-id="{{item.id}}" bindtap="openCardMenu">
+          <view class="more-dot"></view>
+          <view class="more-dot"></view>
+          <view class="more-dot"></view>
+        </view>
+        <view class="card-head">
+          <text class="card-title">{{item.title}}</text>
+          <text class="card-time {{isAdmin ? 'card-time-admin' : ''}}">{{item.scheduleText}}</text>
+        </view>
+
+        <view class="card-note" data-id="{{item.id}}" bindtap="viewTakeover">
+          <text class="note-text">{{item.description}}</text>
+        </view>
+
+        <view class="card-foot">
+          <view class="member-side" data-id="{{item.id}}" bindtap="viewTakeover">
+            <view class="avatar-stack">
+              <image
+                class="member-avatar"
+                wx:for="{{item.participantAvatars}}"
+                wx:for-item="avatar"
+                wx:key="*this"
+                src="{{avatar}}"
+                mode="aspectFill"
+              ></image>
+              <view class="more-avatar" wx:if="{{item.joined > item.participantAvatars.length}}">+{{item.joined - item.participantAvatars.length}}</view>
+            </view>
+            <text class="limit-value">{{item.joined}}/{{item.limit}}人</text>
+          </view>
+          <button
+            class="join-button {{item.hasJoined ? 'joined-button' : ''}}"
+            data-id="{{item.id}}"
+            bindtap="handleTakeoverAction"
+          >
+            {{item.hasJoined ? '查看接龙' : '加入接龙'}}
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{!takeoverList.length && !isRefreshing}}">
+      <text>没有找到合适的接龙</text>
+    </view>
+
+    <view class="list-footer" wx:if="{{takeoverList.length && !isRefreshing}}">
+      <text wx:if="{{isLoadingMore}}">加载中...</text>
+      <text wx:elif="{{!hasMore}}">已经到底啦</text>
+      <button wx:else class="load-more-button" bindtap="loadMoreTakeovers">加载更多</button>
+    </view>
+
+  </view>
+</scroll-view>
+
+<view class="admin-float {{isAdmin ? 'admin-float-active' : ''}}" bindtap="openAdminSheet">
+  <image class="admin-float-icon" src="/assets/edit.svg" mode="aspectFit"></image>
+</view>
+
+<view class="global-loading" wx:if="{{isAuthorizing}}">
+  <view class="loading-card">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">处理中</text>
+  </view>
+</view>
+
+<view class="sheet-mask" wx:if="{{showProfileSheet}}" bindtap="closeProfileSheet"></view>
+<view class="profile-sheet" wx:if="{{showProfileSheet}}">
+  <view class="sheet-handle"></view>
+  <view class="sheet-title-row">
+    <text class="sheet-title">补充资料</text>
+    <view class="close-button" bindtap="closeProfileSheet">×</view>
+  </view>
+
+  <view class="avatar-preview {{gender ? '' : 'avatar-empty'}}">
+    <image wx:if="{{avatarUrl}}" class="avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
+    <text wx:else class="avatar-placeholder">?</text>
+  </view>
+
+  <view class="form">
+    <view class="field">
+      <text class="label">性别</text>
+      <view class="gender-grid">
+        <button class="gender-option {{gender === 'male' ? 'gender-active' : ''}}" data-gender="male" bindtap="selectGender">
+          <image class="gender-avatar" src="{{maleAvatarUrl}}" mode="aspectFill"></image>
+          <text class="gender-label">男</text>
+        </button>
+        <button class="gender-option {{gender === 'female' ? 'gender-active' : ''}}" data-gender="female" bindtap="selectGender">
+          <image class="gender-avatar" src="{{femaleAvatarUrl}}" mode="aspectFill"></image>
+          <text class="gender-label">女</text>
+        </button>
+      </view>
+      <text class="error" wx:if="{{genderError}}">{{genderError}}</text>
+    </view>
+
+    <view class="field">
+      <text class="label">昵称</text>
+      <input
+        class="input"
+        type="nickname"
+        value="{{nickName}}"
+        placeholder="怎么称呼你"
+        placeholder-class="placeholder"
+        bindinput="handleNickNameInput"
+      />
+      <text class="error" wx:if="{{nickNameError}}">{{nickNameError}}</text>
+    </view>
+
+    <view class="field">
+      <text class="label">SteamID</text>
+      <input
+        class="input"
+        value="{{steamId}}"
+        placeholder="输入 SteamID"
+        placeholder-class="placeholder"
+        bindinput="handleSteamIdInput"
+      />
+      <text class="error" wx:if="{{steamIdError}}">{{steamIdError}}</text>
+    </view>
+  </view>
+
+  <button class="primary-button sheet-submit" loading="{{isSaving}}" disabled="{{isSaving}}" bindtap="saveProfile">
+    {{isSaving ? '保存中...' : '保存并继续'}}
+  </button>
+</view>
+
+<view class="sheet-mask" wx:if="{{showCreateSheet}}" bindtap="closeCreateSheet"></view>
+<view class="profile-sheet create-sheet" wx:if="{{showCreateSheet}}">
+  <view class="sheet-handle"></view>
+  <view class="sheet-title-row">
+    <text class="sheet-title">{{editingTakeoverId ? '编辑接龙' : '创建接龙'}}</text>
+    <view class="close-button" bindtap="closeCreateSheet">×</view>
+  </view>
+
+  <scroll-view class="create-scroll" scroll-y>
+    <view class="form">
+      <view class="field">
+        <text class="label">标题</text>
+        <input
+          class="input"
+          value="{{createTitle}}"
+          placeholder="例如：周末合作游戏局"
+          placeholder-class="placeholder"
+          bindinput="handleCreateTitleInput"
+        />
+        <text class="error" wx:if="{{createTitleError}}">{{createTitleError}}</text>
+      </view>
+
+      <view class="field">
+        <text class="label">人数上限</text>
+        <input
+          class="input"
+          type="number"
+          value="{{createLimit}}"
+          placeholder="例如：4"
+          placeholder-class="placeholder"
+          bindinput="handleCreateLimitInput"
+        />
+        <text class="error" wx:if="{{createLimitError}}">{{createLimitError}}</text>
+      </view>
+
+      <view class="field">
+        <text class="label">时间类型</text>
+        <view class="schedule-grid">
+          <view class="schedule-option {{createScheduleType === 'once' ? 'schedule-active' : ''}}" data-type="once" bindtap="selectScheduleType">指定日期</view>
+          <view class="schedule-option {{createScheduleType === 'daily' ? 'schedule-active' : ''}}" data-type="daily" bindtap="selectScheduleType">每天</view>
+          <view class="schedule-option {{createScheduleType === 'range' ? 'schedule-active' : ''}}" data-type="range" bindtap="selectScheduleType">日期范围</view>
+        </view>
+      </view>
+
+      <view class="field" wx:if="{{createScheduleType === 'once'}}">
+        <text class="label">指定日期</text>
+        <picker mode="date" value="{{createDate}}" start="{{todayDate}}" bindchange="handleCreateDateChange">
+          <view class="input picker-input {{createDate ? '' : 'picker-placeholder'}}">{{createDate || '选择日期'}}</view>
+        </picker>
+        <text class="error" wx:if="{{createDateError}}">{{createDateError}}</text>
+      </view>
+
+      <view class="field" wx:elif="{{createScheduleType === 'range'}}">
+        <text class="label">日期范围</text>
+        <view class="range-row">
+          <picker class="range-input" mode="date" value="{{createStartDate}}" start="{{todayDate}}" bindchange="handleCreateStartDateChange">
+            <view class="input range-input-inner {{createStartDate ? '' : 'picker-placeholder'}}">{{createStartDate || '开始'}}</view>
+          </picker>
+          <text class="range-separator">至</text>
+          <picker class="range-input" mode="date" value="{{createEndDate}}" start="{{createStartDate || todayDate}}" bindchange="handleCreateEndDateChange">
+            <view class="input range-input-inner {{createEndDate ? '' : 'picker-placeholder'}}">{{createEndDate || '结束'}}</view>
+          </picker>
+        </view>
+        <text class="error" wx:if="{{createDateError}}">{{createDateError}}</text>
+      </view>
+
+      <view class="field">
+        <text class="label">固定时间</text>
+        <picker mode="time" value="{{createTime}}" bindchange="handleCreateTimeChange">
+          <view class="input picker-input {{createTime ? '' : 'picker-placeholder'}}">{{createTime || '选择时间'}}</view>
+        </picker>
+        <text class="error" wx:if="{{createTimeError}}">{{createTimeError}}</text>
+      </view>
+
+      <view class="field">
+        <text class="label">介绍</text>
+        <textarea
+          class="textarea"
+          value="{{createDescription}}"
+          placeholder="简单说说怎么玩、适合什么人"
+          placeholder-class="placeholder"
+          maxlength="80"
+          bindinput="handleCreateDescriptionInput"
+        />
+        <text class="error" wx:if="{{createDescriptionError}}">{{createDescriptionError}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <button class="primary-button sheet-submit" bindtap="submitCreateTakeover">{{editingTakeoverId ? '保存修改' : '发布接龙'}}</button>
+</view>
+
+<view class="sheet-mask" wx:if="{{showDetailSheet}}" bindtap="closeDetailSheet"></view>
+<view class="profile-sheet detail-sheet" wx:if="{{showDetailSheet && currentTakeover}}">
+  <view class="sheet-handle"></view>
+  <view class="sheet-title-row">
+    <view class="detail-title-copy">
+      <text class="sheet-title">{{currentTakeover.title}}</text>
+      <text class="detail-subtitle">{{currentTakeover.scheduleText}}</text>
+    </view>
+    <view class="close-button" bindtap="closeDetailSheet">×</view>
+  </view>
+
+  <view class="detail-summary">
+    <text class="detail-description">{{currentTakeover.description}}</text>
+    <view class="detail-count">
+      <text class="detail-count-value">{{currentTakeover.joined}}/{{currentTakeover.limit}}</text>
+      <text class="detail-count-label">{{detailJoinStatusText}}</text>
+    </view>
+  </view>
+
+  <scroll-view class="member-scroll" scroll-y>
+    <view class="member-list">
+      <view class="member-row" wx:for="{{currentTakeover.participants}}" wx:key="steamId">
+        <image class="detail-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="member-info">
+          <text class="member-name">{{item.nickName}}</text>
+          <text class="member-steam">SteamID：{{item.steamId}}</text>
+        </view>
+        <view class="member-actions">
+          <button class="copy-button" wx:if="{{!isAdmin}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
+          <button class="block-button" wx:else data-steamid="{{item.steamId}}" bindtap="blockUser">拉黑</button>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <button class="detail-join-button" wx:if="{{showDetailJoinButton}}" bindtap="joinCurrentTakeover">加入接龙</button>
+</view>
+
+<view class="sheet-mask" wx:if="{{showAdminSheet}}" bindtap="closeAdminSheet"></view>
+<view class="profile-sheet admin-sheet" wx:if="{{showAdminSheet}}">
+  <view class="sheet-handle"></view>
+  <view class="sheet-title-row">
+    <text class="sheet-title">管理员验证</text>
+    <view class="close-button" bindtap="closeAdminSheet">×</view>
+  </view>
+
+  <view class="form">
+    <view class="field">
+      <text class="label">管理员密码</text>
+      <input
+        class="input"
+        password
+        value="{{adminPassword}}"
+        placeholder="输入管理员密码"
+        placeholder-class="placeholder"
+        bindinput="handleAdminPasswordInput"
+      />
+      <text class="error" wx:if="{{adminPasswordError}}">{{adminPasswordError}}</text>
+    </view>
+  </view>
+
+  <button class="primary-button sheet-submit" bindtap="verifyAdminPassword">进入管理</button>
+</view>
+
+<view class="sheet-mask" wx:if="{{showCardMenuSheet}}" bindtap="closeCardMenu"></view>
+<view class="profile-sheet card-menu-sheet" wx:if="{{showCardMenuSheet && managingTakeover}}">
+  <view class="sheet-handle"></view>
+  <view class="sheet-title-row">
+    <view class="detail-title-copy">
+      <text class="sheet-title">{{managingTakeover.title}}</text>
+      <text class="detail-subtitle">管理接龙</text>
+    </view>
+    <view class="close-button" bindtap="closeCardMenu">×</view>
+  </view>
+
+  <view class="card-menu-actions">
+    <button class="menu-action-button" bindtap="editManagingTakeover">编辑接龙</button>
+    <button class="menu-action-button menu-danger-button" bindtap="deleteManagingTakeover">删除接龙</button>
+  </view>
+</view>
