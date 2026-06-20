@@ -1369,28 +1369,6 @@ Component({
           })
       }
 
-      if (wx.chooseMedia) {
-        wx.chooseMedia({
-          count: 1,
-          mediaType: ['image'],
-          sourceType: ['album', 'camera'],
-          success: result => {
-            console.log('chooseMedia result:', result)
-            const firstFile = result.tempFiles[0] as any
-            const filePath = firstFile?.tempFilePath || firstFile?.path
-            if (filePath) {
-              handleFile(filePath)
-            } else {
-              wx.showToast({ title: '未获取到图片路径', icon: 'none' })
-            }
-          },
-          fail: () => {
-            wx.showToast({ title: '选择图片失败', icon: 'none' })
-          },
-        })
-        return
-      }
-
       wx.chooseImage({
         count: 1,
         sourceType: ['album', 'camera'],
