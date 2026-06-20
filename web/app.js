@@ -392,7 +392,8 @@ const apiRequest = async (path, options = {}) => {
   if (options.json !== undefined) headers.set("Content-Type", "application/json")
   if (token) headers.set("Authorization", `Bearer ${token}`)
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const requestBaseUrl = window.location.protocol === "https:" ? "/miniprogram-api" : API_BASE_URL
+  const response = await fetch(`${requestBaseUrl}${path}`, {
     method: options.method || "GET",
     headers,
     body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
