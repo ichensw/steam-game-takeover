@@ -284,7 +284,7 @@
 
       <view class="field">
         <text class="label">固定时间</text>
-        <picker mode="time" value="{{createTime}}" bindchange="handleCreateTimeChange">
+        <picker mode="time" value="{{createTime}}" start="{{minCreateTime}}" bindchange="handleCreateTimeChange">
           <view class="input picker-input {{createTime ? '' : 'picker-placeholder'}}">{{createTime || '选择时间'}}</view>
         </picker>
         <text class="error" wx:if="{{createTimeError}}">{{createTimeError}}</text>

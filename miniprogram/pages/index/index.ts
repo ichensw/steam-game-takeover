@@ -411,6 +411,32 @@ const formatDateForInput = (date: Date) => {
   return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`
 }
 
+const formatTimeForInput = (date: Date) => {
+  return `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`
+}
+
+const minFutureTimeForInput = () => {
+  const nextMinute = new Date(Date.now() + 60 * 1000)
+  return formatTimeForInput(nextMinute)
+}
+
+const isTodayText = (dateText: string) => {
+  const parsedDate = parseDateText(dateText)
+  return !!parsedDate && formatDateForInput(parsedDate) === formatDateForInput(new Date())
+}
+
+const isTimeAfterNow = (timeText: string) => {
+  const match = timeText.match(/^(\d{2}):(\d{2})$/)
+  if (!match) {
+    return false
+  }
+
+  const now = new Date()
+  const candidate = new Date(now)
+  candidate.setHours(Number(match[1]), Number(match[2]), 0, 0)
+  return candidate.getTime() > now.getTime()
+}
+
 const getDateLabel = (dateText: string) => {
   const parsedDate = parseDateText(dateText)
 
@@ -786,6 +812,7 @@ Component({
     rangeStartDate: '',
     rangeEndDate: '',
     todayDate: formatDateForInput(new Date()),
+    minCreateTime: '',
     pageIndex: 1,
     isRefreshing: false,
     isLoadingMore: false,
@@ -1387,6 +1414,7 @@ Component({
         createDate: event.detail.value as string,
         createDateError: '',
       })
+      this.syncCreateTimeLimit()
     },
 
     handleCreateStartDateChange(event: WechatMiniprogram.PickerChange) {
@@ -1410,9 +1438,17 @@ Component({
     },
 
     handleCreateTimeChange(event: WechatMiniprogram.PickerChange) {
+      const createTime = event.detail.value as string
+      const createTimeError =
+        this.data.createScheduleType === 'once' &&
+        isTodayText(this.data.createDate) &&
+        !isTimeAfterNow(createTime)
+          ? '请选择当前时间之后的时间'
+          : ''
+
       this.setData({
-        createTime: event.detail.value as string,
-        createTimeError: '',
+        createTime: createTimeError ? '' : createTime,
+        createTimeError,
       })
     },
 
@@ -1433,6 +1469,24 @@ Component({
       this.setData({
         createScheduleType: scheduleType,
         createDateError: '',
+      })
+      this.syncCreateTimeLimit()
+    },
+
+    syncCreateTimeLimit() {
+      const minCreateTime =
+        this.data.createScheduleType === 'once' && isTodayText(this.data.createDate)
+          ? minFutureTimeForInput()
+          : ''
+      const shouldClearTime =
+        !!minCreateTime &&
+        !!this.data.createTime &&
+        !isTimeAfterNow(this.data.createTime)
+
+      this.setData({
+        minCreateTime,
+        createTime: shouldClearTime ? '' : this.data.createTime,
+        createTimeError: shouldClearTime ? '请选择当前时间之后的时间' : this.data.createTimeError,
       })
     },
 
@@ -1597,6 +1651,7 @@ Component({
         createTimeError: '',
         createDescriptionError: '',
       })
+      this.syncCreateTimeLimit()
     },
 
     deleteTakeover(event: WechatMiniprogram.TouchEvent) {
@@ -1656,7 +1711,7 @@ Component({
       const createTitleError = title ? '' : '请输入标题'
       const createLimitError =
         Number.isInteger(limit) && limit > 0 && limit <= 99 ? '' : '请输入 1-99 的人数'
-      const createTimeError = time ? '' : '请输入时间'
+      const createTimeError = time ? this.validateCreateTime(time) : '请输入时间'
       const createDescriptionError = description ? '' : '请输入介绍'
       const createDateError = this.validateCreateDate()
 
@@ -1774,6 +1829,19 @@ Component({
       })
     },
 
+    validateCreateTime(time: string) {
+      if (
+        this.data.createScheduleType === 'once' &&
+        isTodayText(this.data.createDate.trim()) &&
+        time &&
+        !isTimeAfterNow(time)
+      ) {
+        return '固定时间必须晚于当前时间'
+      }
+
+      return ''
+    },
+
     validateCreateDate() {
       if (this.data.createScheduleType === 'daily') {
         return ''
@@ -1847,6 +1915,7 @@ Component({
 
       if (action === 'create') {
         this.setData({ showCreateSheet: true })
+        this.syncCreateTimeLimit()
         return
       }
 
