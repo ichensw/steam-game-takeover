@@ -110,6 +110,23 @@ input {
 button {
   border: 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus {
+  outline: 0;
+}
+
+button:focus-visible {
+  outline: 0;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.82),
+    0 0 0 5px rgba(134, 100, 238, 0.34);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .app {
@@ -466,8 +483,24 @@ button {
 }
 
 .filter.active {
-  background: var(--black);
-  color: var(--surface);
+  border-color: rgba(134, 100, 238, 0.28);
+  background: linear-gradient(135deg, rgba(160, 240, 163, 0.92), rgba(155, 128, 244, 0.3));
+  color: var(--text);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.46),
+    0 10px 22px rgba(92, 74, 165, 0.12);
+}
+
+.filter:focus,
+.filter:focus-visible {
+  outline: 0;
+}
+
+.filter.active:focus,
+.filter.active:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.46),
+    0 10px 22px rgba(92, 74, 165, 0.12);
 }
 
 .app[data-theme="dark"] .filter.active {
@@ -770,32 +803,82 @@ button {
 }
 
 .avatar {
-  display: grid;
   width: 30px;
   height: 30px;
-  place-items: center;
   margin-left: -8px;
   border: 2px solid var(--surface);
   border-radius: 50%;
-  background: var(--purple);
-  color: #1f1f20;
+  background: var(--surface-soft);
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(31, 31, 32, 0.12);
+}
+
+.avatar.fallback {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(160, 240, 163, 0.92), rgba(155, 128, 244, 0.34));
+  color: var(--text);
   font-size: 11px;
   font-weight: 900;
-}
-
-.avatar:nth-child(2n) {
-  background: var(--green);
-}
-
-.avatar:nth-child(3n) {
-  background: var(--yellow);
 }
 
 .detail-panel {
   position: sticky;
   top: 18px;
   overflow: hidden;
-  padding: 0;
+  min-height: 320px;
+  padding: 18px;
+}
+
+.detail-panel:empty {
+  display: none;
+}
+
+.detail-empty {
+  display: grid;
+  min-height: 272px;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 28px;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(160, 240, 163, 0.18), rgba(155, 128, 244, 0.12)),
+    var(--surface);
+  color: var(--muted);
+  text-align: center;
+}
+
+.detail-empty-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 18px;
+  background: var(--surface-soft);
+  color: var(--purple-strong);
+}
+
+.detail-empty-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.detail-empty strong {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.detail-empty span:last-child {
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 750;
 }
 
 .detail-modal {
@@ -1136,8 +1219,9 @@ button {
 }
 
 .gender-option.active {
-  background: var(--black);
-  color: var(--surface);
+  background: linear-gradient(135deg, rgba(160, 240, 163, 0.92), rgba(155, 128, 244, 0.3));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(134, 100, 238, 0.22);
 }
 
 .app[data-theme="dark"] .gender-option.active {
@@ -1210,8 +1294,8 @@ button {
 }
 
 .select-option.active {
-  background: var(--black);
-  color: var(--surface);
+  background: linear-gradient(135deg, rgba(160, 240, 163, 0.88), rgba(155, 128, 244, 0.26));
+  color: var(--text);
 }
 
 .app[data-theme="dark"] .select-option.active {
@@ -1589,11 +1673,25 @@ button {
   color: var(--purple-strong);
 }
 
+.date-cell.disabled,
+.date-cell:disabled {
+  cursor: not-allowed;
+  color: rgba(31, 31, 32, 0.28);
+  opacity: 1;
+  text-decoration: line-through;
+}
+
+.app[data-theme="dark"] .date-cell.disabled,
+.app[data-theme="dark"] .date-cell:disabled {
+  color: rgba(244, 239, 255, 0.28);
+}
+
 .date-cell.active,
 .time-cell.active,
 .picker-confirm {
-  background: var(--black);
-  color: var(--surface);
+  background: linear-gradient(135deg, rgba(160, 240, 163, 0.92), rgba(155, 128, 244, 0.32));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(134, 100, 238, 0.2);
 }
 
 .app[data-theme="dark"] .date-cell.active,
@@ -1658,6 +1756,11 @@ button {
   pointer-events: none;
   transform: translate(-50%, -10px);
   transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+dialog > .toast {
+  position: fixed;
+  top: 24px;
 }
 
 .toast.show {

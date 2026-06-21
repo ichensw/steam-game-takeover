@@ -1,10 +1,10 @@
-﻿const API_BASE_URL = "http://47.102.200.211:8081"
+﻿const API_BASE_URL = "https://rabbits.ink/miniprogram-api"
 const TOKEN_KEY = "tabbits_user_token"
 const ADMIN_TOKEN_KEY = "tabbits_admin_token"
 const PROFILE_KEY = "tabbits_profile"
 const DEFAULT_AVATAR = {
-  1: "./assets/avatar-male.jpg",
-  2: "./assets/avatar-female.jpg",
+  1: "https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg",
+  2: "https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg",
 }
 
 const icons = {
@@ -36,17 +36,21 @@ const adminModal = document.querySelector("#adminModal")
 const blockedUsersModal = document.querySelector("#blockedUsersModal")
 const blockConfirmModal = document.querySelector("#blockConfirmModal")
 const unblockConfirmModal = document.querySelector("#unblockConfirmModal")
+const deleteConfirmModal = document.querySelector("#deleteConfirmModal")
 const detailModal = document.querySelector("#detailModal")
 const detailModalContent = document.querySelector("#detailModalContent")
 const loginForm = document.querySelector("#loginForm")
 const registerForm = document.querySelector("#registerForm")
 const openRegisterButton = document.querySelector("#openRegisterButton")
 const createForm = document.querySelector("#createForm")
+const createSubmitButton = document.querySelector("#createSubmitButton")
 const adminForm = document.querySelector("#adminForm")
 const blockConfirmForm = document.querySelector("#blockConfirmForm")
 const blockTargetText = document.querySelector("#blockTargetText")
 const unblockConfirmForm = document.querySelector("#unblockConfirmForm")
 const unblockTargetText = document.querySelector("#unblockTargetText")
+const deleteConfirmForm = document.querySelector("#deleteConfirmForm")
+const deleteTargetText = document.querySelector("#deleteTargetText")
 const blockedPanel = document.querySelector("#blockedPanel")
 const blockedUsersPanel = document.querySelector("#blockedUsersPanel")
 const blockedSearchInput = document.querySelector("#blockedSearchInput")
@@ -72,12 +76,15 @@ const scheduleFields = Array.from(document.querySelectorAll("[data-schedule-fiel
 const startDateLabel = document.querySelector("#startDateLabel")
 
 const PAGE_SIZE = 10
+const CREATE_SUBMIT_DEBOUNCE_MS = 1200
 let activeFilter = "all"
 let selectedId = ""
 let takeovers = []
 let selectedDetail = null
 let loading = false
 let loadingMore = false
+let createSubmitting = false
+let lastCreateSubmitAt = 0
 let currentPage = 1
 let totalTakeovers = 0
 let adminMode = !!localStorage.getItem(ADMIN_TOKEN_KEY)
@@ -85,10 +92,22 @@ let selectedAvatarFile = null
 let selectedAvatarObjectUrl = ""
 let pendingBlockUser = null
 let pendingUnblockUser = null
+let pendingDeleteTakeover = null
 const mobileDetailQuery = window.matchMedia("(max-width: 900px)")
 let activePickerInput = null
 let pickerMonth = new Date()
 let loadMoreObserver = null
+
+const setCreateSubmitting = submitting => {
+  createSubmitting = submitting
+  createSubmitButton.disabled = submitting
+  createSubmitButton.setAttribute("aria-busy", submitting ? "true" : "false")
+  if (submitting) {
+    createSubmitButton.textContent = createForm.dataset.editingId ? "保存中..." : "提交中..."
+  } else {
+    createSubmitButton.textContent = createForm.dataset.editingId ? "保存接龙" : "提交接龙"
+  }
+}
 
 const getTakeoverTimeFilter = () => {
   if (activeFilter !== "range") return activeFilter
@@ -123,7 +142,8 @@ const escapeHtml = value =>
     .replaceAll("'", "&#039;")
 
 const showToast = message => {
-  document.body.appendChild(toastEl)
+  const topDialog = Array.from(document.querySelectorAll("dialog[open]")).at(-1)
+  ;(topDialog || document.body).appendChild(toastEl)
   toastEl.textContent = message
   toastEl.classList.add("show")
   window.clearTimeout(showToast.timer)
@@ -148,6 +168,13 @@ const displayDateValue = value => {
   const date = parseDateValue(value)
   return date ? `${date.getFullYear()}年${padNumber(date.getMonth() + 1)}月${padNumber(date.getDate())}日` : ""
 }
+
+const startOfToday = () => {
+  const today = new Date()
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate())
+}
+
+const isBeforeToday = date => date < startOfToday()
 
 const syncPickerDisplay = input => {
   if (!input) return
@@ -232,7 +259,8 @@ const renderDatePicker = () => {
           const value = formatDateValue(date)
           const active = selected && value === formatDateValue(selected)
           const isToday = value === formatDateValue(today)
-          return `<button class="date-cell${active ? " active" : ""}${isToday ? " today" : ""}" type="button" data-picker-date="${value}">${day}</button>`
+          const disabled = isBeforeToday(date)
+          return `<button class="date-cell${active ? " active" : ""}${isToday ? " today" : ""}${disabled ? " disabled" : ""}" type="button" data-picker-date="${value}"${disabled ? " disabled aria-disabled=\"true\"" : ""}>${day}</button>`
         })
         .join("")}
     </div>
@@ -392,8 +420,7 @@ const apiRequest = async (path, options = {}) => {
   if (options.json !== undefined) headers.set("Content-Type", "application/json")
   if (token) headers.set("Authorization", `Bearer ${token}`)
 
-  const requestBaseUrl = window.location.protocol === "https:" ? "/miniprogram-api" : API_BASE_URL
-  const response = await fetch(`${requestBaseUrl}${path}`, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method || "GET",
     headers,
     body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
@@ -474,7 +501,11 @@ const memberAvatar = member =>
 const avatarMarkup = members =>
   members
     .slice(0, 5)
-    .map(member => `<span class="avatar">${avatarText(member)}</span>`)
+    .map(member =>
+      member.avatarUrl
+        ? `<img class="avatar" src="${escapeHtml(member.avatarUrl)}" alt="${escapeHtml(member.nickname || "玩家")}" />`
+        : `<span class="avatar fallback">${avatarText(member)}</span>`,
+    )
     .join("")
 
 const ensureLogin = () => {
@@ -567,9 +598,16 @@ const fetchTakeovers = async ({ append = false } = {}) => {
     currentPage = nextPage
     takeovers = append ? [...takeovers, ...normalized] : normalized
     if (!append && (!selectedId || !takeovers.some(item => item.id === selectedId))) selectedId = takeovers[0]?.id || ""
+    loading = false
+    loadingMore = false
     renderList()
     syncPagination()
-    if (!append && selectedId) await fetchDetail(selectedId)
+    if (!append && selectedId) {
+      await fetchDetail(selectedId)
+    } else if (!append) {
+      selectedDetail = null
+      renderDetail(null)
+    }
   } catch (error) {
     if (append) {
       showToast(error.message)
@@ -645,7 +683,15 @@ const adminActionMarkup = () =>
     : '<button class="secondary-action" type="button" data-action="admin">管理员操作</button>'
 
 const detailMarkup = item => {
-  if (!item) return '<div class="empty">这里会显示选中接龙的详情。</div>'
+  if (!item) {
+    return `
+      <div class="detail-empty">
+        <span class="detail-empty-icon">${detailIcon('<path d="M8 7h8M8 12h5"></path><path d="M5 3h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path>')}</span>
+        <strong>暂无接龙详情</strong>
+        <span>当前列表还没有可查看的接龙。</span>
+      </div>
+    `
+  }
 
   const members = item.members || []
   const joinButton = item.hasJoined
@@ -735,7 +781,7 @@ const handleDetailAction = event => {
   }
   if (action === "blocked-users") openBlockedUsers()
   if (action === "admin-exit") exitAdminMode()
-  if (action === "delete") deleteSelected()
+  if (action === "delete") openDeleteConfirm()
   if (action === "edit") editSelected()
   const steamId = event.target.closest("[data-copy-steam]")?.dataset.copySteam
   if (steamId) copySteamId(steamId)
@@ -796,9 +842,15 @@ const submitRegister = async event => {
 const submitCreate = async event => {
   event.preventDefault()
   if (!ensureLogin()) return
+  if (createSubmitting) return
+  const now = Date.now()
+  if (now - lastCreateSubmitAt < CREATE_SUBMIT_DEBOUNCE_MS) return
+  lastCreateSubmitAt = now
+  setCreateSubmitting(true)
   normalizeCreateScheduleFields()
   const formData = new FormData(createForm)
   const scheduleType = Number(formData.get("scheduleType"))
+  const editingId = createForm.dataset.editingId || ""
   const payload = {
     title: formData.get("title").trim(),
     participantLimit: Number(formData.get("participantLimit")),
@@ -810,8 +862,8 @@ const submitCreate = async event => {
   }
 
   try {
-    if (createForm.dataset.editingId) {
-      await apiRequest(`/api/admin/takeovers/${createForm.dataset.editingId}`, { method: "PUT", json: payload, admin: true })
+    if (editingId) {
+      await apiRequest(`/api/admin/takeovers/${editingId}`, { method: "PUT", json: payload, admin: true })
       delete createForm.dataset.editingId
       showToast("接龙已保存")
     } else {
@@ -824,8 +876,11 @@ const submitCreate = async event => {
     setScheduleType(1)
     normalizeCreateScheduleFields()
     await fetchTakeovers()
+    if (editingId && mobileDetailQuery.matches && detailModal.open) detailModal.close()
   } catch (error) {
     showToast(error.message)
+  } finally {
+    setCreateSubmitting(false)
   }
 }
 
@@ -897,6 +952,7 @@ const exitAdminMode = async () => {
 const editSelected = () => {
   if (!selectedDetail || !getAdminToken()) return
   createForm.dataset.editingId = selectedDetail.id
+  setCreateSubmitting(false)
   createForm.elements.title.value = selectedDetail.title
   createForm.elements.participantLimit.value = selectedDetail.limit || 4
   setScheduleType(selectedDetail.scheduleType || 1)
@@ -908,17 +964,32 @@ const editSelected = () => {
   createModal.showModal()
 }
 
-const deleteSelected = async () => {
+const openDeleteConfirm = () => {
   if (!selectedId || !getAdminToken()) return
-  if (!window.confirm("确定删除这个接龙吗？")) return
+  pendingDeleteTakeover = selectedDetail || takeovers.find(item => item.id === selectedId) || { id: selectedId }
+  deleteTargetText.textContent = pendingDeleteTakeover.title ? `将删除：${pendingDeleteTakeover.title}` : `将删除接龙 ID：${pendingDeleteTakeover.id}`
+  deleteConfirmModal.showModal()
+}
+
+const deleteSelected = async () => {
+  const takeoverId = pendingDeleteTakeover?.id || selectedId
+  if (!takeoverId || !getAdminToken()) return
   try {
-    await apiRequest(`/api/admin/takeovers/${selectedId}`, { method: "DELETE", admin: true })
+    await apiRequest(`/api/admin/takeovers/${takeoverId}`, { method: "DELETE", admin: true })
     showToast("已删除")
     selectedId = ""
+    selectedDetail = null
+    deleteConfirmModal.close()
+    if (detailModal.open) detailModal.close()
     await fetchTakeovers()
   } catch (error) {
     showToast(error.message)
   }
+}
+
+const submitDeleteConfirm = async event => {
+  event.preventDefault()
+  await deleteSelected()
 }
 
 const openBlockConfirm = userId => {
@@ -1229,6 +1300,8 @@ pickerPopover.addEventListener("click", event => {
 
   const dateValue = event.target.closest("[data-picker-date]")?.dataset.pickerDate
   if (dateValue && activePickerInput) {
+    const date = parseDateValue(dateValue)
+    if (!date || isBeforeToday(date)) return
     setPickerValue(activePickerInput, dateValue)
     closePickerPopover()
     return
@@ -1274,6 +1347,8 @@ pickerPopover.addEventListener("click", event => {
 
 createButton.addEventListener("click", () => {
   if (ensureLogin()) {
+    delete createForm.dataset.editingId
+    setCreateSubmitting(false)
     setScheduleType(scheduleTypeInput.value || 1)
     normalizeCreateScheduleFields()
     closeScheduleMenu()
@@ -1291,6 +1366,7 @@ createForm.addEventListener("submit", submitCreate)
 adminForm.addEventListener("submit", submitAdmin)
 blockConfirmForm?.addEventListener("submit", submitBlockConfirm)
 unblockConfirmForm?.addEventListener("submit", submitUnblockConfirm)
+deleteConfirmForm?.addEventListener("submit", submitDeleteConfirm)
 
 blockConfirmModal?.addEventListener("close", () => {
   pendingBlockUser = null
@@ -1298,6 +1374,10 @@ blockConfirmModal?.addEventListener("close", () => {
 
 unblockConfirmModal?.addEventListener("close", () => {
   pendingUnblockUser = null
+})
+
+deleteConfirmModal?.addEventListener("close", () => {
+  pendingDeleteTakeover = null
 })
 
 const bootstrap = async () => {

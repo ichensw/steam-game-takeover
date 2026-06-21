@@ -54,9 +54,12 @@ const PAGE_SIZE = 5
 const PROFILE_KEY = 'steam_takeover_user'
 const TOKEN_KEY = 'steam_takeover_token'
 const ADMIN_TOKEN_KEY = 'steam_takeover_admin_token'
-const API_BASE_URL = 'http://47.102.200.211:8081'
-const MALE_AVATAR_URL = '/assets/avatar-male.jpg'
-const FEMALE_AVATAR_URL = '/assets/avatar-female.jpg'
+const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
+const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
+const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
+const CREATE_SUBMIT_DEBOUNCE_MS = 1200
+
+let lastCreateSubmitAt = 0
 
 type ApiResponse<T> = {
   success?: boolean
@@ -833,6 +836,7 @@ Component({
     maleAvatarUrl: MALE_AVATAR_URL,
     femaleAvatarUrl: FEMALE_AVATAR_URL,
     isAuthorizing: false,
+    isSubmittingTakeover: false,
     isSaving: false,
     isUploadingAvatar: false,
     isBlocked: false,
@@ -1463,8 +1467,13 @@ Component({
     },
 
     handleCreateDateChange(event: WechatMiniprogram.PickerChange) {
+      const createDate = event.detail.value as string
+      if (isDateBeforeToday(createDate)) {
+        wx.showToast({ title: '不能选择今天之前的日期', icon: 'none' })
+        return
+      }
       this.setData({
-        createDate: event.detail.value as string,
+        createDate,
         createDateError: '',
       })
       this.syncCreateTimeLimit()
@@ -1472,6 +1481,10 @@ Component({
 
     handleCreateStartDateChange(event: WechatMiniprogram.PickerChange) {
       const startDate = event.detail.value as string
+      if (isDateBeforeToday(startDate)) {
+        wx.showToast({ title: '不能选择今天之前的日期', icon: 'none' })
+        return
+      }
       const endDate = this.data.createEndDate
       this.setData({
         createStartDate: startDate,
@@ -1482,6 +1495,10 @@ Component({
 
     handleCreateEndDateChange(event: WechatMiniprogram.PickerChange) {
       const endDate = event.detail.value as string
+      if (isDateBeforeToday(endDate)) {
+        wx.showToast({ title: '不能选择今天之前的日期', icon: 'none' })
+        return
+      }
       const startDate = this.data.createStartDate
       this.setData({
         createStartDate: startDate && startDate > endDate ? endDate : startDate,
@@ -1734,6 +1751,11 @@ Component({
     },
 
     submitCreateTakeover() {
+      if (this.data.isSubmittingTakeover) return
+      const now = Date.now()
+      if (now - lastCreateSubmitAt < CREATE_SUBMIT_DEBOUNCE_MS) return
+      lastCreateSubmitAt = now
+
       const title = this.data.createTitle.trim()
       const limit = Number(this.data.createLimit)
       const description = this.data.createDescription.trim()
@@ -1776,7 +1798,7 @@ Component({
       const payload = buildTakeoverPayload(title, limit, scheduleType, schedule, description)
 
       if (editingTakeover) {
-        this.setData({ isAuthorizing: true })
+        this.setData({ isAuthorizing: true, isSubmittingTakeover: true })
         apiRequest<Record<string, any> | null>({
           url: `/api/admin/takeovers/${editingTakeover.id}`,
           method: 'PUT',
@@ -1808,12 +1830,12 @@ Component({
             wx.showToast({ title: error.message || '保存失败', icon: 'none' })
           })
           .finally(() => {
-            this.setData({ isAuthorizing: false })
+            this.setData({ isAuthorizing: false, isSubmittingTakeover: false })
           })
         return
       }
 
-      this.setData({ isAuthorizing: true })
+      this.setData({ isAuthorizing: true, isSubmittingTakeover: true })
       apiRequest<{ id?: string } | Record<string, any>>({
         url: '/api/takeovers',
         method: 'POST',
@@ -1833,7 +1855,7 @@ Component({
           wx.showToast({ title: error.message || '创建失败', icon: 'none' })
         })
         .finally(() => {
-          this.setData({ isAuthorizing: false })
+          this.setData({ isAuthorizing: false, isSubmittingTakeover: false })
         })
     },
 

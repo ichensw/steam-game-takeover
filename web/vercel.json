@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/miniprogram-api/:path*",
-      "destination": "http://47.102.200.211:8081/:path*"
+      "destination": "https://rabbits.ink/miniprogram-api/:path*"
     }
   ],
   "headers": [

@@ -308,7 +308,9 @@
     </view>
   </scroll-view>
 
-  <button class="primary-button sheet-submit" bindtap="submitCreateTakeover">{{editingTakeoverId ? '保存修改' : '发布接龙'}}</button>
+  <button class="primary-button sheet-submit" loading="{{isSubmittingTakeover}}" disabled="{{isSubmittingTakeover}}" bindtap="submitCreateTakeover">
+    {{isSubmittingTakeover ? (editingTakeoverId ? '保存中...' : '发布中...') : (editingTakeoverId ? '保存修改' : '发布接龙')}}
+  </button>
 </view>
 
 <view class="sheet-mask" wx:if="{{showDetailSheet}}" bindtap="closeDetailSheet"></view>

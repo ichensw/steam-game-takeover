@@ -135,7 +135,7 @@
         <label class="avatar-picker" for="avatarInput">
           <span>头像</span>
           <span class="avatar-preview-wrap">
-            <img id="avatarPreview" class="avatar-preview" src="./assets/avatar-male.jpg" alt="头像预览" />
+            <img id="avatarPreview" class="avatar-preview" src="https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg" alt="头像预览" />
             <span class="avatar-edit-badge">更换</span>
           </span>
           <input id="avatarInput" name="avatar" type="file" accept="image/*" hidden />
@@ -209,7 +209,7 @@
           </span>
         </label>
         <label>介绍<textarea name="description" maxlength="500" rows="4"></textarea></label>
-        <button class="primary-action wide" type="submit">提交接龙</button>
+        <button class="primary-action wide" id="createSubmitButton" type="submit">提交接龙</button>
       </form>
     </dialog>
 
@@ -276,6 +276,24 @@
         <div class="modal-actions">
           <button class="secondary-action" type="button" data-close="unblockConfirmModal">取消</button>
           <button class="primary-action" type="submit">确认移除</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="deleteConfirmModal">
+      <form class="modal-card compact-modal" id="deleteConfirmForm">
+        <div class="modal-heading">
+          <h2>删除接龙</h2>
+          <button class="icon-button" type="button" data-close="deleteConfirmModal" aria-label="关闭">×</button>
+        </div>
+        <div class="warning-panel">
+          <strong>确认删除这个接龙吗？</strong>
+          <span>删除后列表和详情中都会移除该接龙，队伍成员也将无法继续查看。</span>
+        </div>
+        <p class="form-note" id="deleteTargetText"></p>
+        <div class="modal-actions">
+          <button class="secondary-action" type="button" data-close="deleteConfirmModal">取消</button>
+          <button class="danger-action" type="submit">确认删除</button>
         </div>
       </form>
     </dialog>
