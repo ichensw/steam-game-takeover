@@ -79,9 +79,9 @@ const CARD_COVERS = [
 ]
 const CARD_CATEGORIES = ['王者荣耀', '和平精英', '英雄联盟', 'Steam同好', '派对游戏']
 const STATUS_COVERS: Record<string, string> = {
-  待发车: '/assets/takeover-card-pending.png',
   招募中: '/assets/takeover-card-recruiting.png',
-  已满员: '/assets/takeover-card-full.png',
+  已满员: '/assets/takeover-card-pending.png',
+  已结束: '/assets/takeover-card-full.png',
 }
 
 const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
@@ -338,7 +338,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
             date: rawTakeover.startDate || rawTakeover.start_date || rawTakeover.date || '',
             time: playTime,
           }
-  const statusLabel = rawTakeover.statusLabel || rawTakeover.status_label || (joined >= limit && limit > 0 ? '已满员' : joined > 0 ? '招募中' : '待发车')
+  const statusLabel = rawTakeover.statusLabel || rawTakeover.status_label || (joined >= limit && limit > 0 ? '已满员' : '招募中')
 
   return {
     id: String(rawTakeover.id),
@@ -362,7 +362,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
       joined >= limit && limit > 0 ? '满员' : '开黑',
     ],
     statusLabel,
-    statusTone: statusLabel === '待发车' ? 'pink' : statusLabel === '已满员' ? 'purple' : 'orange',
+    statusTone: statusLabel === '已满员' ? 'purple' : statusLabel === '已结束' ? 'ended' : 'orange',
     coverImage: rawTakeover.coverImage || rawTakeover.cover_image || STATUS_COVERS[statusLabel] || CARD_COVERS[numericId % CARD_COVERS.length],
   }
 }
@@ -413,13 +413,15 @@ Page({
     editEndDate: '',
     editTime: '',
     editDescription: '',
+    todayDate: formatDateForInput(new Date()),
   },
 
   onLoad(options: Record<string, string | undefined>) {
     const takeoverId = decodeURIComponent(options.id || '')
+    const storedProfile = getStoredProfile()
 
     this.setData({ takeoverId })
-    this.setData({ canManage: !!getStoredProfile()?.isAdmin })
+    this.setData({ canManage: !!(storedProfile && storedProfile.isAdmin) })
     if (!takeoverId) {
       wx.showToast({ title: '队伍不存在', icon: 'none' })
       return
@@ -440,7 +442,7 @@ Page({
           wx.setStorageSync(PROFILE_KEY, profile)
         }
 
-        if (profile?.isAdmin) {
+        if (profile && profile.isAdmin) {
           this.setData({ canManage: true })
         }
       })

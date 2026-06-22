@@ -71,9 +71,9 @@ const CARD_COVERS = [
 ]
 const CARD_CATEGORIES = ['王者荣耀', '和平精英', '英雄联盟', 'Steam同好', '派对游戏']
 const STATUS_COVERS: Record<string, string> = {
-  待发车: '/assets/takeover-card-pending.png',
   招募中: '/assets/takeover-card-recruiting.png',
-  已满员: '/assets/takeover-card-full.png',
+  已满员: '/assets/takeover-card-pending.png',
+  已结束: '/assets/takeover-card-full.png',
 }
 
 let lastCreateSubmitAt = 0
@@ -527,9 +527,9 @@ const buildTakeoverDisplayFields = (
   rawTakeover: Record<string, any> = {}
 ) => {
   const numericId = getDisplaySeed(id)
-  const statusLabel = rawTakeover.statusLabel || rawTakeover.status_label || (joined >= limit && limit > 0 ? '已满员' : joined > 0 ? '招募中' : '待发车')
+  const statusLabel = rawTakeover.statusLabel || rawTakeover.status_label || (joined >= limit && limit > 0 ? '已满员' : '招募中')
 
-  const statusTone = statusLabel === '待发车' ? 'pink' : statusLabel === '已满员' ? 'purple' : 'orange'
+  const statusTone = statusLabel === '已满员' ? 'purple' : statusLabel === '已结束' ? 'ended' : 'orange'
 
   return {
     categoryLabel: rawTakeover.categoryLabel || rawTakeover.category_label || rawTakeover.gameName || rawTakeover.game_name || CARD_CATEGORIES[numericId % CARD_CATEGORIES.length],

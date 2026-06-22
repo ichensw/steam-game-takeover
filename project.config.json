@@ -43,7 +43,28 @@
   },
   "libVersion": "3.16.1",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "file",
+        "value": "assets/tutuwo-neon-bg.png"
+      },
+      {
+        "type": "file",
+        "value": "assets/tutuwo-reference-home.png"
+      },
+      {
+        "type": "file",
+        "value": "assets/tutuwo-takeover-bg.jpg"
+      },
+      {
+        "type": "file",
+        "value": "assets/avatar-female.jpg"
+      },
+      {
+        "type": "file",
+        "value": "assets/avatar-male.jpg"
+      }
+    ],
     "include": []
   },
   "appid": "wx8f2eb242f0d69dd1"

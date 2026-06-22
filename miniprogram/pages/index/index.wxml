@@ -8,7 +8,7 @@
   bindrefresherrefresh="refreshTakeovers"
   bindscrolltolower="loadMoreTakeovers"
 >
-  <image class="page-bg" src="/assets/tutuwo-neon-bg.png" mode="aspectFill"></image>
+  <image class="page-bg" src="https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/background/tutuwo-neon-bg.png" mode="aspectFill"></image>
   <view class="page-vignette"></view>
   <view class="shell">
     <view class="filter-panel">

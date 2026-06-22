@@ -1,12 +1,13 @@
 <view class="detail-page">
-  <image class="detail-bg" src="/assets/tutuwo-neon-bg.png" mode="aspectFill"></image>
+  <image class="detail-bg" src="https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/background/tutuwo-neon-bg.png" mode="aspectFill"></image>
 
   <view class="detail-shell">
     <view class="detail-nav">
-      <view class="back-button" bindtap="goBack">‹</view>
+      <view class="back-button" bindtap="goBack">
+        <text class="back-icon">‹</text>
+      </view>
       <view class="nav-copy">
         <text class="nav-title">队伍详情</text>
-        <text class="nav-subtitle">确认信息后再加入队伍</text>
       </view>
     </view>
 
@@ -106,18 +107,18 @@
         </view>
         <view class="edit-field" wx:if="{{editScheduleType === 'once'}}">
           <text class="edit-label">指定日期</text>
-          <picker mode="date" value="{{editDate}}" bindchange="handleEditDateChange">
+          <picker mode="date" value="{{editDate}}" start="{{todayDate}}" bindchange="handleEditDateChange">
             <view class="admin-input picker-input">{{editDate || '选择日期'}}</view>
           </picker>
         </view>
         <view class="edit-field" wx:elif="{{editScheduleType === 'range'}}">
           <text class="edit-label">日期范围</text>
           <view class="range-row">
-            <picker class="range-input" mode="date" value="{{editStartDate}}" bindchange="handleEditStartDateChange">
+            <picker class="range-input" mode="date" value="{{editStartDate}}" start="{{todayDate}}" bindchange="handleEditStartDateChange">
               <view class="admin-input range-input-inner">{{editStartDate || '开始'}}</view>
             </picker>
             <text class="range-separator">至</text>
-            <picker class="range-input" mode="date" value="{{editEndDate}}" bindchange="handleEditEndDateChange">
+            <picker class="range-input" mode="date" value="{{editEndDate}}" start="{{editStartDate || todayDate}}" bindchange="handleEditEndDateChange">
               <view class="admin-input range-input-inner">{{editEndDate || '结束'}}</view>
             </picker>
           </view>
