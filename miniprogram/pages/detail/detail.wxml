@@ -1,0 +1,142 @@
+<view class="detail-page">
+  <image class="detail-bg" src="/assets/tutuwo-neon-bg.png" mode="aspectFill"></image>
+
+  <view class="detail-shell">
+    <view class="detail-nav">
+      <view class="back-button" bindtap="goBack">‹</view>
+      <view class="nav-copy">
+        <text class="nav-title">队伍详情</text>
+        <text class="nav-subtitle">确认信息后再加入队伍</text>
+      </view>
+    </view>
+
+    <view class="hero-card" wx:if="{{takeover}}">
+      <image class="hero-cover" src="{{takeover.coverImage}}" mode="aspectFit"></image>
+      <view class="status-badge status-{{takeover.statusTone}}">{{takeover.statusLabel}}</view>
+      <text class="hero-title">{{takeover.title}}</text>
+      <text class="hero-desc">{{takeover.description}}</text>
+
+      <view class="info-panel">
+        <view class="info-row">
+          <text class="info-label">发车时间</text>
+          <text class="info-value">{{takeover.scheduleText}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">发起人</text>
+          <text class="info-value">{{takeover.host || '兔兔窝'}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">参与人数</text>
+          <text class="info-value">{{takeover.joined}} / {{takeover.limit}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="admin-actions" wx:if="{{takeover && canManage}}">
+      <button class="admin-action-button" bindtap="openEditSheet">编辑</button>
+      <button class="admin-action-button admin-danger-button" loading="{{isDeleting}}" disabled="{{isDeleting}}" bindtap="deleteAdminTakeover">删除</button>
+    </view>
+
+    <view class="member-section" wx:if="{{takeover}}">
+      <view class="section-head">
+        <text class="section-title">已上车队友</text>
+        <text class="section-count">{{takeover.joined}}/{{takeover.limit}}</text>
+      </view>
+
+      <view class="member-list">
+        <view class="member-row" wx:for="{{takeover.participants}}" wx:key="steamId">
+          <image class="member-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+          <view class="member-info">
+            <text class="member-name">{{item.nickName}}</text>
+            <text class="member-steam">SteamID：{{item.steamId}}</text>
+          </view>
+          <button class="copy-button" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{!takeover && !isLoading}}">
+      <text>队伍不存在或已结束</text>
+    </view>
+  </view>
+
+  <view class="bottom-action" wx:if="{{takeover && !isCreator}}">
+    <button
+      class="join-button {{hasJoined ? 'leave-button' : ''}} {{!canJoin ? 'join-button-disabled' : ''}}"
+      loading="{{isJoining || isLeaving}}"
+      disabled="{{!canJoin || isJoining || isLeaving}}"
+      bindtap="joinTakeover"
+    >
+      {{joinButtonText}}
+    </button>
+  </view>
+
+  <view class="global-loading" wx:if="{{isLoading}}">
+    <view class="loading-card">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中</text>
+    </view>
+  </view>
+
+  <view class="sheet-mask" wx:if="{{showEditSheet}}" bindtap="closeEditSheet"></view>
+  <view class="admin-sheet edit-sheet" wx:if="{{showEditSheet}}">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title-row">
+      <text class="sheet-title">编辑接龙</text>
+      <view class="close-button" bindtap="closeEditSheet">×</view>
+    </view>
+
+    <scroll-view class="edit-scroll" scroll-y>
+      <view class="edit-form">
+        <view class="edit-field">
+          <text class="edit-label">标题</text>
+          <input class="admin-input" value="{{editTitle}}" placeholder="接龙标题" placeholder-class="placeholder" bindinput="handleEditTitleInput" />
+        </view>
+        <view class="edit-field">
+          <text class="edit-label">人数上限</text>
+          <input class="admin-input" type="number" value="{{editLimit}}" placeholder="例如：4" placeholder-class="placeholder" bindinput="handleEditLimitInput" />
+        </view>
+        <view class="edit-field">
+          <text class="edit-label">时间类型</text>
+          <view class="schedule-grid">
+            <view class="schedule-option {{editScheduleType === 'once' ? 'schedule-active' : ''}}" data-type="once" bindtap="selectEditScheduleType">指定日期</view>
+            <view class="schedule-option {{editScheduleType === 'daily' ? 'schedule-active' : ''}}" data-type="daily" bindtap="selectEditScheduleType">每天</view>
+            <view class="schedule-option {{editScheduleType === 'range' ? 'schedule-active' : ''}}" data-type="range" bindtap="selectEditScheduleType">日期范围</view>
+          </view>
+        </view>
+        <view class="edit-field" wx:if="{{editScheduleType === 'once'}}">
+          <text class="edit-label">指定日期</text>
+          <picker mode="date" value="{{editDate}}" bindchange="handleEditDateChange">
+            <view class="admin-input picker-input">{{editDate || '选择日期'}}</view>
+          </picker>
+        </view>
+        <view class="edit-field" wx:elif="{{editScheduleType === 'range'}}">
+          <text class="edit-label">日期范围</text>
+          <view class="range-row">
+            <picker class="range-input" mode="date" value="{{editStartDate}}" bindchange="handleEditStartDateChange">
+              <view class="admin-input range-input-inner">{{editStartDate || '开始'}}</view>
+            </picker>
+            <text class="range-separator">至</text>
+            <picker class="range-input" mode="date" value="{{editEndDate}}" bindchange="handleEditEndDateChange">
+              <view class="admin-input range-input-inner">{{editEndDate || '结束'}}</view>
+            </picker>
+          </view>
+        </view>
+        <view class="edit-field">
+          <text class="edit-label">固定时间</text>
+          <picker mode="time" value="{{editTime}}" bindchange="handleEditTimeChange">
+            <view class="admin-input picker-input">{{editTime || '选择时间'}}</view>
+          </picker>
+        </view>
+        <view class="edit-field">
+          <text class="edit-label">介绍</text>
+          <textarea class="admin-textarea" value="{{editDescription}}" maxlength="80" placeholder="简单说说怎么玩" placeholder-class="placeholder" bindinput="handleEditDescriptionInput" />
+        </view>
+      </view>
+    </scroll-view>
+
+    <button class="sheet-submit" loading="{{isSavingAdmin}}" disabled="{{isSavingAdmin}}" bindtap="saveAdminEdit">
+      {{isSavingAdmin ? '保存中...' : '保存修改'}}
+    </button>
+  </view>
+</view>

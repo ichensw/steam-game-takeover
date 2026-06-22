@@ -8,37 +8,26 @@
   bindrefresherrefresh="refreshTakeovers"
   bindscrolltolower="loadMoreTakeovers"
 >
+  <image class="page-bg" src="/assets/tutuwo-neon-bg.png" mode="aspectFill"></image>
+  <view class="page-vignette"></view>
   <view class="shell">
-    <view class="topbar">
-      <view class="brand-copy">
-        <text class="title">兔兔窝游戏接龙</text>
-        <text class="subtitle">寻找同好，玩在一起</text>
-      </view>
-      <button class="create-button" bindtap="createTakeover">创建接龙</button>
-    </view>
-
-    <view class="helper-card">
-      <image class="helper-avatar" src="{{femaleAvatarUrl}}" mode="aspectFill"></image>
-      <view class="helper-copy">
-        <text class="helper-kicker">接龙小助手</text>
-        <text class="helper-text">看看大家的游戏局，想玩就加入。</text>
-      </view>
-    </view>
-
     <view class="filter-panel">
       <view class="search-box">
-        <text class="search-icon">⌕</text>
         <input
           class="search-input"
           value="{{searchKeyword}}"
-          placeholder="搜索队伍名称或介绍"
+          placeholder="搜索标题 / 内容 / 发起人"
           placeholder-class="placeholder"
           bindinput="handleSearchInput"
         />
-        <view class="search-clear" wx:if="{{searchKeyword}}" bindtap="clearSearch">×</view>
+        <text class="search-icon" wx:if="{{!searchKeyword}}">⌕</text>
+        <view class="search-clear" wx:else bindtap="clearSearch">
+          <view class="search-clear-line search-clear-line-a"></view>
+          <view class="search-clear-line search-clear-line-b"></view>
+        </view>
       </view>
 
-      <view class="time-filter-list">
+      <view class="filter-actions">
         <view class="time-filter {{activeTimeFilter === 'all' ? 'time-filter-active' : ''}}" bindtap="selectAllTimeFilter">全部</view>
         <view class="time-filter time-filter-select {{activeTimeFilter !== 'all' ? 'time-filter-active' : ''}}" bindtap="toggleTimeFilterDropdown">
           <text>{{activeTimeFilterLabel}}</text>
@@ -76,23 +65,47 @@
     </view>
 
     <view class="takeover-list">
-      <view class="takeover-card" wx:for="{{takeoverList}}" wx:key="id">
-        <view class="card-more" wx:if="{{isAdmin}}" data-id="{{item.id}}" bindtap="openCardMenu">
-          <view class="more-dot"></view>
-          <view class="more-dot"></view>
-          <view class="more-dot"></view>
+      <view class="takeover-card takeover-card-{{item.statusTone}}" wx:for="{{takeoverList}}" wx:key="id" data-id="{{item.id}}" bindtap="viewTakeover">
+        <image class="card-cover" src="{{item.coverImage}}" mode="aspectFit"></image>
+        <view class="card-ambient"></view>
+        <view class="card-sparkle card-sparkle-one">✦</view>
+        <view class="card-sparkle card-sparkle-two">♡</view>
+        <view class="game-badge">
+          <text class="game-icon">🎮</text>
+          <text>{{item.categoryLabel}}</text>
         </view>
+        <view class="status-badge status-{{item.statusTone}}">{{item.statusLabel}}</view>
         <view class="card-head">
           <text class="card-title">{{item.title}}</text>
-          <text class="card-time {{isAdmin ? 'card-time-admin' : ''}}">{{item.scheduleText}}</text>
         </view>
 
-        <view class="card-note" data-id="{{item.id}}" bindtap="viewTakeover">
+        <view class="card-note">
           <text class="note-text">{{item.description}}</text>
         </view>
 
+        <view class="card-meta-list">
+          <view class="card-meta-row">
+            <view class="meta-icon">
+              <image class="meta-icon-image" src="/assets/icon-time.svg" mode="aspectFit"></image>
+            </view>
+            <text class="meta-value">{{item.scheduleText}}</text>
+          </view>
+          <view class="card-meta-row">
+            <view class="meta-icon">
+              <image class="meta-icon-image" src="/assets/icon-host.svg" mode="aspectFit"></image>
+            </view>
+            <text class="meta-value">{{item.host || '兔兔窝'}}</text>
+          </view>
+          <view class="card-meta-row">
+            <view class="meta-icon">
+              <image class="meta-icon-image" src="/assets/icon-members.svg" mode="aspectFit"></image>
+            </view>
+            <text class="meta-value">{{item.joined}} / {{item.limit}}</text>
+          </view>
+        </view>
+
         <view class="card-foot">
-          <view class="member-side" data-id="{{item.id}}" bindtap="viewTakeover">
+          <view class="member-side">
             <view class="avatar-stack">
               <image
                 class="member-avatar"
@@ -102,17 +115,8 @@
                 src="{{avatar}}"
                 mode="aspectFill"
               ></image>
-              <view class="more-avatar" wx:if="{{item.joined > item.participantAvatars.length}}">+{{item.joined - item.participantAvatars.length}}</view>
             </view>
-            <text class="limit-value">{{item.joined}}/{{item.limit}}人</text>
           </view>
-          <button
-            class="join-button {{item.hasJoined ? 'joined-button' : ''}}"
-            data-id="{{item.id}}"
-            bindtap="handleTakeoverAction"
-          >
-            {{item.hasJoined ? '查看接龙' : '加入接龙'}}
-          </button>
         </view>
       </view>
     </view>
@@ -134,16 +138,13 @@
   </view>
 </scroll-view>
 
-<view class="admin-float {{isAdmin ? 'admin-float-active' : ''}}" bindtap="openAdminSheet">
-  <image class="admin-float-icon" src="/assets/edit.svg" mode="aspectFit"></image>
-</view>
+<button class="create-dock" bindtap="createTakeover">
+  <text class="create-dock-plus">＋</text>
+  <text>发起接龙</text>
+</button>
 
 <view class="profile-float" bindtap="openProfileEditor">
   <image class="profile-float-avatar" src="{{avatarUrl || femaleAvatarUrl}}" mode="aspectFill"></image>
-  <view class="profile-float-copy">
-    <text class="profile-float-name">{{nickName || '编辑个人信息'}}</text>
-    <text class="profile-float-meta">{{steamId || '昵称 / SteamID'}}</text>
-  </view>
 </view>
 
 <view class="global-loading" wx:if="{{isAuthorizing}}">
@@ -351,47 +352,4 @@
   </scroll-view>
 
   <button class="detail-join-button" wx:if="{{showDetailJoinButton}}" bindtap="joinCurrentTakeover">加入接龙</button>
-</view>
-
-<view class="sheet-mask" wx:if="{{showAdminSheet}}" bindtap="closeAdminSheet"></view>
-<view class="profile-sheet admin-sheet" wx:if="{{showAdminSheet}}">
-  <view class="sheet-handle"></view>
-  <view class="sheet-title-row">
-    <text class="sheet-title">管理员验证</text>
-    <view class="close-button" bindtap="closeAdminSheet">×</view>
-  </view>
-
-  <view class="form">
-    <view class="field">
-      <text class="label">管理员密码</text>
-      <input
-        class="input"
-        password
-        value="{{adminPassword}}"
-        placeholder="输入管理员密码"
-        placeholder-class="placeholder"
-        bindinput="handleAdminPasswordInput"
-      />
-      <text class="error" wx:if="{{adminPasswordError}}">{{adminPasswordError}}</text>
-    </view>
-  </view>
-
-  <button class="primary-button sheet-submit" bindtap="verifyAdminPassword">进入管理</button>
-</view>
-
-<view class="sheet-mask" wx:if="{{showCardMenuSheet}}" bindtap="closeCardMenu"></view>
-<view class="profile-sheet card-menu-sheet" wx:if="{{showCardMenuSheet && managingTakeover}}">
-  <view class="sheet-handle"></view>
-  <view class="sheet-title-row">
-    <view class="detail-title-copy">
-      <text class="sheet-title">{{managingTakeover.title}}</text>
-      <text class="detail-subtitle">管理接龙</text>
-    </view>
-    <view class="close-button" bindtap="closeCardMenu">×</view>
-  </view>
-
-  <view class="card-menu-actions">
-    <button class="menu-action-button" bindtap="editManagingTakeover">编辑接龙</button>
-    <button class="menu-action-button menu-danger-button" bindtap="deleteManagingTakeover">删除接龙</button>
-  </view>
 </view>

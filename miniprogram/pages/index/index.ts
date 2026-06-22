@@ -30,6 +30,7 @@ type UserProfile = {
   steamId: string
   avatarUrl: string
   gender: Gender
+  isAdmin?: boolean
 }
 
 type Participant = UserProfile
@@ -47,6 +48,11 @@ type Takeover = {
   participantAvatars: string[]
   participants: Participant[]
   hasJoined: boolean
+  categoryLabel: string
+  cardTags: string[]
+  statusLabel: string
+  statusTone: string
+  coverImage: string
 }
 
 const PAGE_SIZE = 5
@@ -58,6 +64,17 @@ const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
 const CREATE_SUBMIT_DEBOUNCE_MS = 1200
+const CARD_COVERS = [
+  '/assets/takeover-card-pending.png',
+  '/assets/takeover-card-recruiting.png',
+  '/assets/takeover-card-full.png',
+]
+const CARD_CATEGORIES = ['王者荣耀', '和平精英', '英雄联盟', 'Steam同好', '派对游戏']
+const STATUS_COVERS: Record<string, string> = {
+  待发车: '/assets/takeover-card-pending.png',
+  招募中: '/assets/takeover-card-recruiting.png',
+  已满员: '/assets/takeover-card-full.png',
+}
 
 let lastCreateSubmitAt = 0
 
@@ -88,6 +105,8 @@ type UploadResult = {
   objectKey?: string
 }
 
+type UploadResponse = ApiResponse<UploadResult> | UploadResult
+
 type ProfilePayload = {
   nickName: string
   steamId: string
@@ -100,11 +119,14 @@ const getAdminToken = () => wx.getStorageSync(ADMIN_TOKEN_KEY) as string
 
 const parseUploadResponse = (value: string) => {
   try {
-    return JSON.parse(value) as ApiResponse<UploadResult> | UploadResult
+    return JSON.parse(value) as UploadResponse
   } catch {
     return null
   }
 }
+
+const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
+  !!value && typeof value === 'object' && 'success' in value
 
 const apiRequest = <T>(options: ApiRequestOptions) => {
   return new Promise<T>((resolve, reject) => {
@@ -122,20 +144,21 @@ const apiRequest = <T>(options: ApiRequestOptions) => {
       header.Authorization = `Bearer ${token}`
     }
 
-    wx.request<ApiResponse<T> | T>({
+    wx.request<WechatMiniprogram.IAnyObject>({
       url: `${API_BASE_URL}${options.url}`,
       method: options.method || 'GET',
       data: options.data,
       header,
       success: response => {
-        const body = response.data as ApiResponse<T>
+        const responseData = response.data as T | ApiResponse<T>
+        const body = responseData as ApiResponse<T>
 
         if (response.statusCode < 200 || response.statusCode >= 300) {
           reject(new Error((body && (body.code || body.message)) || `请求失败：${response.statusCode}`))
           return
         }
 
-        if (body && typeof body === 'object' && 'success' in body) {
+        if (isApiResponse<T>(body)) {
           if (body.success === false) {
             reject(new Error(body.message || body.code || '请求失败'))
             return
@@ -145,7 +168,7 @@ const apiRequest = <T>(options: ApiRequestOptions) => {
           return
         }
 
-        resolve(response.data as T)
+        resolve(responseData as T)
       },
       fail: error => {
         console.error('api request failed:', `${API_BASE_URL}${options.url}`, error)
@@ -172,12 +195,14 @@ const uploadImage = (filePath: string) => {
       },
       success: response => {
         const body = parseUploadResponse(response.data)
+        const uploadError =
+          body && isApiResponse<UploadResult>(body) ? body.message || body.code : ''
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error((body && (body.message || body.code)) || `上传失败：${response.statusCode}`))
+          reject(new Error(uploadError || `上传失败：${response.statusCode}`))
           return
         }
 
-        const data = body && 'success' in body ? body.data : body
+        const data = body && isApiResponse<UploadResult>(body) ? body.data : body
         if (!data || !data.url) {
           reject(new Error('上传结果异常'))
           return
@@ -250,6 +275,7 @@ const normalizeUserProfile = (rawUser: Record<string, any> | null | undefined): 
     steamId,
     gender,
     avatarUrl: rawUser.avatarUrl || rawUser.avatar_url || getGenderAvatar(gender),
+    isAdmin: !!(rawUser.isAdmin || rawUser.is_admin),
   }
 }
 
@@ -326,9 +352,10 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     scheduleText: rawTakeover.scheduleText || rawTakeover.schedule_text || formatSchedule(schedule),
     description: rawTakeover.description || '',
     avatarUrl: rawTakeover.avatarUrl || rawTakeover.avatar_url || (participants[0] && participants[0].avatarUrl) || FEMALE_AVATAR_URL,
-    participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 4),
+    participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 5),
     participants,
     hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
+    ...buildTakeoverDisplayFields(String(rawTakeover.id), joined, limit, scheduleType, rawTakeover),
   }
 }
 
@@ -489,11 +516,42 @@ const formatSchedule = (schedule: Schedule) => {
   return `${getDateLabel(schedule.startDate)}-${getDateLabel(schedule.endDate)} 每天 ${schedule.time}`
 }
 
-const createMockTakeover = (takeover: Omit<Takeover, 'scheduleText' | 'participantAvatars'>): Takeover => {
+const getDisplaySeed = (id: string) =>
+  id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)
+
+const buildTakeoverDisplayFields = (
+  id: string,
+  joined: number,
+  limit: number,
+  scheduleType: ScheduleType,
+  rawTakeover: Record<string, any> = {}
+) => {
+  const numericId = getDisplaySeed(id)
+  const statusLabel = rawTakeover.statusLabel || rawTakeover.status_label || (joined >= limit && limit > 0 ? '已满员' : joined > 0 ? '招募中' : '待发车')
+
+  const statusTone = statusLabel === '待发车' ? 'pink' : statusLabel === '已满员' ? 'purple' : 'orange'
+
+  return {
+    categoryLabel: rawTakeover.categoryLabel || rawTakeover.category_label || rawTakeover.gameName || rawTakeover.game_name || CARD_CATEGORIES[numericId % CARD_CATEGORIES.length],
+    cardTags: [
+      rawTakeover.teamType || rawTakeover.team_type || (limit <= 4 ? '四排' : '五排'),
+      rawTakeover.mode || rawTakeover.mode_label || (scheduleType === 'daily' ? '日常' : '上分'),
+      joined >= limit && limit > 0 ? '满员' : '开黑',
+    ],
+    statusLabel,
+    statusTone,
+    coverImage: rawTakeover.coverImage || rawTakeover.cover_image || STATUS_COVERS[statusLabel] || CARD_COVERS[numericId % CARD_COVERS.length],
+  }
+}
+
+const createMockTakeover = (
+  takeover: Omit<Takeover, 'scheduleText' | 'participantAvatars' | 'categoryLabel' | 'cardTags' | 'statusLabel' | 'statusTone' | 'coverImage'>
+): Takeover => {
   return {
     ...takeover,
+    ...buildTakeoverDisplayFields(takeover.id, takeover.joined, takeover.limit, takeover.schedule.type),
     scheduleText: formatSchedule(takeover.schedule),
-    participantAvatars: takeover.participants.map(participant => participant.avatarUrl).slice(0, 4),
+    participantAvatars: takeover.participants.map(participant => participant.avatarUrl).slice(0, 5),
   }
 }
 
@@ -794,6 +852,7 @@ const getStoredProfile = (): UserProfile | null => {
       steamId: userProfile.steamId,
       gender: userProfile.gender,
       avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
+      isAdmin: !!userProfile.isAdmin,
     }
   }
 
@@ -965,14 +1024,25 @@ Component({
     },
 
     viewTakeover(event: WechatMiniprogram.TouchEvent) {
-      this.ensureProfile('view', event.currentTarget.dataset.id as string)
+      const takeoverId = event.currentTarget.dataset.id as string
+      if (!takeoverId) {
+        return
+      }
+
+      wx.navigateTo({
+        url: `/pages/detail/detail?id=${encodeURIComponent(takeoverId)}`,
+      })
     },
 
     handleTakeoverAction(event: WechatMiniprogram.TouchEvent) {
       const takeoverId = event.currentTarget.dataset.id as string
-      const takeover = allTakeovers.find(item => item.id === takeoverId)
+      if (!takeoverId) {
+        return
+      }
 
-      this.ensureProfile(takeover && takeover.hasJoined ? 'view' : 'join', takeoverId)
+      wx.navigateTo({
+        url: `/pages/detail/detail?id=${encodeURIComponent(takeoverId)}`,
+      })
     },
 
     createTakeover() {
@@ -1384,6 +1454,8 @@ Component({
             if (nickName && steamId && gender) {
               return this.persistProfile({ nickName, steamId, gender, avatarUrl: url }, false)
             }
+
+            return undefined
           })
           .catch(error => {
             wx.showToast({ title: error.message || '头像上传或保存失败', icon: 'none' })
@@ -1579,11 +1651,11 @@ Component({
 
       this.setData({ isSaving: true })
 
-      const userProfile = {
+      const userProfile: ProfilePayload = {
         nickName,
         steamId,
-        gender,
-        avatarUrl: this.data.avatarUrl || getGenderAvatar(gender),
+        gender: gender as Gender,
+        avatarUrl: this.data.avatarUrl || getGenderAvatar(gender as Gender),
       }
 
       this.persistProfile(userProfile, true)
@@ -1978,7 +2050,9 @@ Component({
         return
       }
 
-      this.openTakeoverDetail(this.data.pendingTakeoverId)
+      wx.navigateTo({
+        url: `/pages/detail/detail?id=${encodeURIComponent(this.data.pendingTakeoverId)}`,
+      })
     },
 
     openTakeoverDetail(takeoverId: string) {
@@ -2111,7 +2185,7 @@ Component({
                   ...takeover,
                   joined,
                   participants,
-                  participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 4),
+                  participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 5),
                 }
               })
 

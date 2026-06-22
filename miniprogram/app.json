@@ -1,12 +1,13 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/detail/detail",
     "pages/logs/logs"
   ],
   "window": {
-    "navigationBarTextStyle": "white",
+    "navigationBarTextStyle": "black",
     "navigationBarTitleText": "兔兔窝游戏接龙",
-    "navigationBarBackgroundColor": "#0f1118",
+    "navigationBarBackgroundColor": "#f7c5f7",
     "navigationStyle": "custom"
   },
   "style": "v2",
