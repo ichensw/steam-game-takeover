@@ -715,11 +715,11 @@ button::after {
 
 .credit-float {
   position: absolute;
-  top: -10rpx;
-  right: -14rpx;
+  top: 8rpx;
+  right: 6rpx;
   z-index: 1;
-  width: 58rpx;
-  height: 58rpx;
+  width: 46rpx;
+  height: 46rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -736,8 +736,8 @@ button::after {
 }
 
 .credit-float-value {
-  font-size: 24rpx;
-  line-height: 26rpx;
+  font-size: 19rpx;
+  line-height: 21rpx;
   font-weight: 900;
   letter-spacing: 0;
   text-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.16);
@@ -1913,8 +1913,8 @@ page {
 }
 
 .profile-float .credit-float {
-  top: -14rpx;
-  right: -22rpx;
+  top: -10rpx;
+  right: -10rpx;
 }
 
 .profile-float-avatar {
