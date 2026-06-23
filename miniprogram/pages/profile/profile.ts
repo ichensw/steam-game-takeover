@@ -119,7 +119,7 @@ const uploadImage = (filePath: string) =>
       success: response => {
         const body = parseUploadResponse(response.data)
         const data = body && isApiResponse<UploadResult>(body) ? body.data : body
-        if (response.statusCode < 200 || response.statusCode >= 300 || !data?.url) {
+        if (response.statusCode < 200 || response.statusCode >= 300 || !(data && data.url)) {
           reject(new Error(body && isApiResponse<UploadResult>(body) ? body.message || body.code || '上传失败' : '上传失败'))
           return
         }
@@ -146,7 +146,13 @@ const creditStatusFor = (score: number) => (score <= 50 ? 'disabled' : score < 7
 
 const normalizeUser = (user: Partial<User> | null | undefined, fallback: User): User => {
   const rawUser = user || {}
-  const creditScore = Number(rawUser.creditScore ?? fallback.creditScore ?? 100)
+  const creditScore = Number(
+    rawUser.creditScore !== undefined && rawUser.creditScore !== null
+      ? rawUser.creditScore
+      : fallback.creditScore !== undefined && fallback.creditScore !== null
+        ? fallback.creditScore
+        : 100
+  )
   const nextUser = {
     ...fallback,
     ...rawUser,
@@ -234,7 +240,7 @@ Page({
   },
 
   openTakeover(event: WechatMiniprogram.TouchEvent & { detail?: { id?: number | string } }) {
-    const id = event.detail?.id || event.currentTarget.dataset.id
+    const id = (event.detail && event.detail.id) || event.currentTarget.dataset.id
     if (!id) return
     wx.navigateTo({
       url: `/pages/detail/detail?id=${encodeURIComponent(String(id))}`,
@@ -300,7 +306,7 @@ Page({
   },
 
   selectGender(event: WechatMiniprogram.TouchEvent & { detail?: { gender?: Gender } }) {
-    const gender = (event.detail?.gender || event.currentTarget.dataset.gender) as Gender
+    const gender = ((event.detail && event.detail.gender) || event.currentTarget.dataset.gender) as Gender
     if (gender !== 'male' && gender !== 'female') return
     this.setData({
       editGender: gender,
@@ -317,7 +323,7 @@ Page({
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       success: result => {
-        const filePath = result.tempFiles[0]?.tempFilePath
+        const filePath = result.tempFiles[0] && result.tempFiles[0].tempFilePath
         if (!filePath) return
 
         this.setData({ isUploadingAvatar: true })

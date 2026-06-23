@@ -82,7 +82,7 @@ const STATUS_COVERS: Record<string, string> = {
 }
 
 const getCreditScore = (raw: Record<string, any> | null | undefined) =>
-  Number(raw?.creditScore ?? raw?.credit_score ?? 100)
+  Number(raw ? (raw.creditScore !== undefined && raw.creditScore !== null ? raw.creditScore : raw.credit_score !== undefined && raw.credit_score !== null ? raw.credit_score : 100) : 100)
 const getCreditStatus = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
 const canCreateWithCredit = (score?: number) => score === undefined || score >= 51
 const canJoinWithCredit = (score?: number) => score === undefined || score >= 70
@@ -144,7 +144,7 @@ const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
 
 const apiError = (body: ApiResponse<unknown> | null | undefined, fallback: string) => {
   const error = new Error((body && (body.message || body.code)) || fallback) as Error & { code?: string }
-  error.code = body?.code
+  error.code = body ? body.code : undefined
   return error
 }
 
@@ -352,7 +352,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     : []
   const joined = Number(rawTakeover.joinedCount || rawTakeover.joined_count || rawTakeover.joined || participants.length || 0)
   const limit = Number(rawTakeover.participantLimit || rawTakeover.participant_limit || rawTakeover.limit || 0)
-  const creatorCreditScore = Number(rawTakeover.creatorCreditScore ?? rawTakeover.creator_credit_score ?? 100)
+  const creatorCreditScore = Number(rawTakeover.creatorCreditScore !== undefined && rawTakeover.creatorCreditScore !== null ? rawTakeover.creatorCreditScore : rawTakeover.creator_credit_score !== undefined && rawTakeover.creator_credit_score !== null ? rawTakeover.creator_credit_score : 100)
   const schedule: Schedule =
     scheduleType === 'daily'
       ? { type: 'daily', time: playTime }
@@ -883,8 +883,8 @@ const getStoredProfile = (): UserProfile | null => {
         gender: userProfile.gender,
         avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
         isAdmin: !!userProfile.isAdmin,
-        creditScore: Number(userProfile.creditScore ?? 100),
-        creditStatus: userProfile.creditStatus || getCreditStatus(Number(userProfile.creditScore ?? 100)),
+        creditScore: Number(userProfile.creditScore !== undefined && userProfile.creditScore !== null ? userProfile.creditScore : 100),
+        creditStatus: userProfile.creditStatus || getCreditStatus(Number(userProfile.creditScore !== undefined && userProfile.creditScore !== null ? userProfile.creditScore : 100)),
       }
   }
 
@@ -892,7 +892,7 @@ const getStoredProfile = (): UserProfile | null => {
 }
 
 const isCompleteProfile = (profile: { nickName?: string; steamId?: string; gender?: Gender | '' } | null | undefined) =>
-  !!profile?.nickName && !!profile.steamId && (profile.gender === 'male' || profile.gender === 'female')
+  !!profile && !!profile.nickName && !!profile.steamId && (profile.gender === 'male' || profile.gender === 'female')
 
 const getServerTimeFilter = (timeFilter: TimeFilter, rangeFilter: RangeFilter) => {
   const timeFilterMap: Record<TimeFilter, string> = {
@@ -1043,8 +1043,8 @@ Component({
                   steamIdLocked: !!normalizedProfile.steamId,
                   gender: normalizedProfile.gender,
                   avatarUrl: normalizedProfile.avatarUrl,
-                  creditScore: normalizedProfile.creditScore ?? 100,
-                  creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore ?? 100),
+                  creditScore: normalizedProfile.creditScore !== undefined && normalizedProfile.creditScore !== null ? normalizedProfile.creditScore : 100,
+                  creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore !== undefined && normalizedProfile.creditScore !== null ? normalizedProfile.creditScore : 100),
                 })
               } else {
                 wx.removeStorageSync(PROFILE_KEY)
@@ -1092,7 +1092,7 @@ Component({
     },
 
     viewTakeover(event: WechatMiniprogram.TouchEvent & { detail?: { id?: string } }) {
-      const takeoverId = (event.detail?.id || event.currentTarget.dataset.id) as string
+      const takeoverId = ((event.detail && event.detail.id) || event.currentTarget.dataset.id) as string
       if (!takeoverId) {
         return
       }
@@ -1412,8 +1412,8 @@ Component({
               steamIdLocked: !!profile.steamId,
               gender: profile.gender,
               avatarUrl: profile.avatarUrl,
-              creditScore: profile.creditScore ?? 100,
-              creditStatus: profile.creditStatus || getCreditStatus(profile.creditScore ?? 100),
+              creditScore: profile.creditScore !== undefined && profile.creditScore !== null ? profile.creditScore : 100,
+              creditStatus: profile.creditStatus || getCreditStatus(profile.creditScore !== undefined && profile.creditScore !== null ? profile.creditScore : 100),
               profileCompleted: true,
             })
             this.completePendingAction(action)
@@ -1478,8 +1478,8 @@ Component({
             steamIdLocked: !!profile.steamId,
             gender: profile.gender,
             avatarUrl: profile.avatarUrl,
-            creditScore: profile.creditScore ?? 100,
-            creditStatus: profile.creditStatus || getCreditStatus(profile.creditScore ?? 100),
+            creditScore: profile.creditScore !== undefined && profile.creditScore !== null ? profile.creditScore : 100,
+            creditStatus: profile.creditStatus || getCreditStatus(profile.creditScore !== undefined && profile.creditScore !== null ? profile.creditScore : 100),
           })
         }
 
@@ -1514,7 +1514,7 @@ Component({
     },
 
     selectGender(event: WechatMiniprogram.TouchEvent & { detail?: { gender?: Gender } }) {
-      const gender = (event.detail?.gender || event.currentTarget.dataset.gender) as Gender
+      const gender = ((event.detail && event.detail.gender) || event.currentTarget.dataset.gender) as Gender
 
       if (gender !== 'male' && gender !== 'female') {
         return
@@ -1595,8 +1595,8 @@ Component({
           steamIdLocked: !!normalizedProfile.steamId,
           gender: normalizedProfile.gender,
           avatarUrl: normalizedProfile.avatarUrl,
-          creditScore: normalizedProfile.creditScore ?? 100,
-          creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore ?? 100),
+          creditScore: normalizedProfile.creditScore !== undefined && normalizedProfile.creditScore !== null ? normalizedProfile.creditScore : 100,
+          creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore !== undefined && normalizedProfile.creditScore !== null ? normalizedProfile.creditScore : 100),
           profileCompleted: true,
           showProfileSheet: closeSheet ? false : this.data.showProfileSheet,
         })

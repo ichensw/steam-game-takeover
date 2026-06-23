@@ -95,7 +95,7 @@ const STATUS_COVERS: Record<string, string> = {
 }
 
 const getCreditScore = (raw: Record<string, any> | null | undefined) =>
-  Number(raw?.creditScore ?? raw?.credit_score ?? 100)
+  Number(raw ? (raw.creditScore !== undefined && raw.creditScore !== null ? raw.creditScore : raw.credit_score !== undefined && raw.credit_score !== null ? raw.credit_score : 100) : 100)
 const getCreditStatus = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
 const canJoinWithCredit = (score?: number) => score === undefined || score >= 70
 
@@ -470,8 +470,8 @@ const getStoredProfile = (): UserProfile | null => {
       gender: userProfile.gender,
       avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
       isAdmin: !!userProfile.isAdmin,
-      creditScore: Number(userProfile.creditScore ?? 100),
-      creditStatus: userProfile.creditStatus || getCreditStatus(Number(userProfile.creditScore ?? 100)),
+      creditScore: Number(userProfile.creditScore !== undefined && userProfile.creditScore !== null ? userProfile.creditScore : 100),
+      creditStatus: userProfile.creditStatus || getCreditStatus(Number(userProfile.creditScore !== undefined && userProfile.creditScore !== null ? userProfile.creditScore : 100)),
     }
   }
 
@@ -901,7 +901,7 @@ Page({
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       success: result => {
-        const filePath = result.tempFiles[0]?.tempFilePath
+        const filePath = result.tempFiles[0] && result.tempFiles[0].tempFilePath
         if (!filePath) {
           return
         }

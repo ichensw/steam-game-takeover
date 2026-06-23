@@ -147,7 +147,7 @@ Page({
   },
 
   openTakeover(event: WechatMiniprogram.TouchEvent & { detail?: { id?: number | string } }) {
-    const id = event.detail?.id || event.currentTarget.dataset.id
+    const id = (event.detail && event.detail.id) || event.currentTarget.dataset.id
     if (!id) return
     wx.navigateTo({
       url: `/pages/detail/detail?id=${encodeURIComponent(String(id))}`,
