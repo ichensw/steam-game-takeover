@@ -154,8 +154,18 @@ button::after {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-size: 38rpx;
-  line-height: 62rpx;
+  overflow: hidden;
+}
+
+.stat-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42rpx;
+  height: 42rpx;
+  font-size: 36rpx;
+  line-height: 1;
+  transform: translateY(-3rpx);
 }
 
 .stat-pink {
@@ -172,8 +182,9 @@ button::after {
 }
 
 .stat-credit-icon {
-  width: 48rpx;
-  height: 30rpx;
+  width: 54rpx;
+  height: 34rpx;
+  transform: translateY(-2rpx);
 }
 
 .credit-limited .stat-credit {

@@ -22,13 +22,13 @@
 
     <view class="stats-panel">
       <view class="stat-item">
-        <view class="stat-icon stat-pink">🎮</view>
+        <view class="stat-icon stat-pink"><text class="stat-emoji">🎮</text></view>
         <text class="stat-value">{{createdCount}}</text>
         <text class="stat-label">发起接龙</text>
       </view>
       <view class="stat-divider"></view>
       <view class="stat-item">
-        <view class="stat-icon stat-purple">🎯</view>
+        <view class="stat-icon stat-purple"><text class="stat-emoji">🎯</text></view>
         <text class="stat-value">{{joinedCount}}</text>
         <text class="stat-label">参与接龙</text>
       </view>
