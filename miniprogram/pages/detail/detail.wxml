@@ -50,7 +50,7 @@
           <view class="member-info">
             <view class="member-name-line">
               <text class="member-name">{{item.nickName}}</text>
-              <text class="credit-badge credit-{{item.creditStatus}}">信誉 {{item.creditScore}}</text>
+              <text class="credit-badge credit-{{item.creditStatus}}">{{item.creditScore}}</text>
             </view>
             <text class="member-steam">SteamID：{{item.steamId}}</text>
           </view>

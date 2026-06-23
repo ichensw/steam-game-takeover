@@ -85,7 +85,6 @@
 <view class="profile-float" bindtap="openProfilePage">
   <image class="profile-float-avatar" src="{{avatarUrl || femaleAvatarUrl}}" mode="aspectFill"></image>
   <view class="credit-float credit-{{creditStatus}}">
-    <text class="credit-float-label">信誉</text>
     <text class="credit-float-value">{{creditScore}}</text>
   </view>
 </view>
@@ -278,7 +277,7 @@
         <view class="member-info">
           <view class="member-name-line">
             <text class="member-name">{{item.nickName}}</text>
-            <text class="credit-badge credit-{{item.creditStatus}}">信誉 {{item.creditScore}}</text>
+            <text class="credit-badge credit-{{item.creditStatus}}">{{item.creditScore}}</text>
           </view>
           <view class="member-steam-line">
             <text class="member-steam">SteamID：{{item.steamId}}</text>
