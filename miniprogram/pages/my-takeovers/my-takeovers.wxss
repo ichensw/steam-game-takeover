@@ -94,18 +94,17 @@ button::after {
 }
 
 .search-icon {
-  width: 68rpx;
-  height: 68rpx;
+  width: 52rpx;
+  height: 52rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: #b172f1;
-  font-size: 78rpx;
-  line-height: 68rpx;
+  font-size: 56rpx;
+  line-height: 1;
   font-weight: 900;
   box-sizing: border-box;
-  margin-bottom: 10rpx;
 }
 
 .search-clear {
