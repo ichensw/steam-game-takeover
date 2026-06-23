@@ -172,8 +172,8 @@ button::after {
 }
 
 .stat-credit-icon {
-  width: 42rpx;
-  height: 42rpx;
+  width: 48rpx;
+  height: 30rpx;
 }
 
 .credit-limited .stat-credit {
