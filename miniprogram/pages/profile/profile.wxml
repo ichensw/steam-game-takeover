@@ -35,7 +35,7 @@
       <view class="stat-divider"></view>
       <view class="stat-item credit-stat credit-{{user.creditStatus}}">
         <view class="stat-icon stat-credit">
-          <view class="stat-credit-icon"></view>
+          <image class="stat-credit-icon" src="/assets/icon-credit.svg" mode="aspectFit"></image>
         </view>
         <text class="stat-value">{{user.creditScore}}</text>
         <text class="stat-label">信誉分</text>
