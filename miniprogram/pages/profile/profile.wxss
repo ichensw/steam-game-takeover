@@ -58,7 +58,7 @@ button::after {
 }
 
 .hero {
-  margin-top: 142rpx;
+  margin-top: 136rpx;
   display: flex;
   align-items: center;
   gap: 30rpx;
@@ -121,7 +121,7 @@ button::after {
 }
 
 .stats-panel {
-  margin-top: 120rpx;
+  margin-top: 52rpx;
   height: 148rpx;
   display: flex;
   align-items: center;
@@ -154,7 +154,6 @@ button::after {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  overflow: hidden;
 }
 
 .stat-emoji {
@@ -166,6 +165,10 @@ button::after {
   font-size: 36rpx;
   line-height: 1;
   transform: translateY(-3rpx);
+}
+
+.stat-emoji-target {
+  transform: translate(3rpx, -3rpx);
 }
 
 .stat-pink {
@@ -183,7 +186,8 @@ button::after {
 
 .stat-credit-icon {
   width: 54rpx;
-  height: 34rpx;
+  height: 54rpx;
+  border-radius: 50%;
   transform: translateY(-2rpx);
 }
 
