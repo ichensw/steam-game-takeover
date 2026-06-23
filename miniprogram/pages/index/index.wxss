@@ -715,15 +715,15 @@ button::after {
 
 .credit-float {
   position: absolute;
-  top: -16rpx;
-  right: -20rpx;
+  top: -10rpx;
+  right: -14rpx;
   z-index: 1;
-  width: 74rpx;
-  height: 74rpx;
+  width: 58rpx;
+  height: 58rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 4rpx solid rgba(255, 255, 255, 0.9);
+  border: 3rpx solid rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   background: linear-gradient(135deg, #20c97a 0%, #12b6cb 100%);
   color: #ffffff;
@@ -736,8 +736,8 @@ button::after {
 }
 
 .credit-float-value {
-  font-size: 30rpx;
-  line-height: 32rpx;
+  font-size: 24rpx;
+  line-height: 26rpx;
   font-weight: 900;
   letter-spacing: 0;
   text-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.16);
