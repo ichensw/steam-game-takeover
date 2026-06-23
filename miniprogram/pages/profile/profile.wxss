@@ -171,40 +171,9 @@ button::after {
   box-shadow: 0 0 18rpx rgba(34, 197, 94, 0.34);
 }
 
-.credit-shield {
-  position: relative;
-  width: 30rpx;
-  height: 34rpx;
-  border: 5rpx solid rgba(255, 255, 255, 0.96);
-  border-radius: 14rpx 14rpx 18rpx 18rpx;
-  box-sizing: border-box;
-  transform: perspective(80rpx) rotateX(0deg);
-}
-
-.credit-shield::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -13rpx;
-  width: 18rpx;
-  height: 18rpx;
-  border-right: 5rpx solid rgba(255, 255, 255, 0.96);
-  border-bottom: 5rpx solid rgba(255, 255, 255, 0.96);
-  border-radius: 0 0 7rpx 0;
-  background: transparent;
-  transform: translateX(-50%) rotate(45deg);
-  box-sizing: border-box;
-}
-
-.credit-shield::after {
-  content: '';
-  position: absolute;
-  left: 8rpx;
-  top: 6rpx;
-  width: 7rpx;
-  height: 7rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
+.stat-credit-icon {
+  width: 42rpx;
+  height: 42rpx;
 }
 
 .credit-limited .stat-credit {
