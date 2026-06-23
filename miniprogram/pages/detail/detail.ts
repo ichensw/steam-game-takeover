@@ -29,6 +29,10 @@ type UserProfile = {
   isAdmin?: boolean
   creditScore?: number
   creditStatus?: string
+  hasReported?: boolean
+  canReport?: boolean
+  isSelf?: boolean
+  reportStatus?: string
 }
 
 type Participant = UserProfile
@@ -98,6 +102,7 @@ const getCreditScore = (raw: Record<string, any> | null | undefined) =>
   Number(raw ? (raw.creditScore !== undefined && raw.creditScore !== null ? raw.creditScore : raw.credit_score !== undefined && raw.credit_score !== null ? raw.credit_score : 100) : 100)
 const getCreditStatus = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
 const canJoinWithCredit = (score?: number) => score === undefined || score >= 70
+const isTrue = (value: unknown) => value === true || value === 1 || value === '1' || value === 'true'
 
 const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
 
@@ -250,8 +255,13 @@ const normalizeParticipant = (rawParticipant: Record<string, any>): Participant 
     avatarUrl: rawParticipant.avatarUrl || rawParticipant.avatar_url || getGenderAvatar(gender),
     creditScore,
     creditStatus: rawParticipant.creditStatus || rawParticipant.credit_status || getCreditStatus(creditScore),
+    hasReported: isTrue(rawParticipant.hasReported) || isTrue(rawParticipant.has_reported) || isTrue(rawParticipant.reported),
+    isSelf: isTrue(rawParticipant.isSelf) || isTrue(rawParticipant.is_self),
   }
 }
+
+const getUserKey = (user: { userId?: string; openid?: string } | null | undefined) =>
+  user ? user.userId || user.openid || '' : ''
 
 const normalizeUserProfile = (rawProfile: Record<string, any> | null | undefined): UserProfile | null => {
   if (!rawProfile) {
@@ -504,10 +514,12 @@ Page({
     todayDate: formatDateForInput(new Date()),
     showReportSheet: false,
     reportUserId: '',
+    reportUserKey: '',
     reportNickname: '',
     reportContent: '',
     reportImageUrl: '',
     reportImageUrls: [] as string[],
+    reportedUserKeys: [] as string[],
     isUploadingReportImage: false,
     isSubmittingReport: false,
   },
@@ -540,6 +552,10 @@ Page({
 
         if (profile && profile.isAdmin) {
           this.setData({ canManage: true })
+        }
+
+        if (profile && this.data.takeover) {
+          this.setData({ takeover: this.withReportState(this.data.takeover) })
         }
       })
       .catch(() => {})
@@ -726,7 +742,7 @@ Page({
       url: `/api/takeovers/${this.data.takeoverId}`,
     })
       .then(result => {
-        const takeover = normalizeTakeover(result)
+        const takeover = this.withReportState(normalizeTakeover(result))
         this.setData({
           takeover,
           ...this.getJoinState(takeover),
@@ -740,6 +756,24 @@ Page({
       .finally(() => {
         this.setData({ isLoading: false })
       })
+  },
+
+  withReportState(takeover: Takeover, reportedUserKeys = this.data.reportedUserKeys) {
+    return {
+      ...takeover,
+      participants: takeover.participants.map(participant => {
+        const userKey = getUserKey(participant)
+        const isSelf = !!participant.isSelf
+        const hasReported = !!participant.hasReported || (!!userKey && reportedUserKeys.indexOf(userKey) >= 0)
+        return {
+          ...participant,
+          isSelf,
+          hasReported,
+          canReport: !isSelf && !hasReported,
+          reportStatus: isSelf ? '自己' : hasReported ? '已举报' : '举报',
+        }
+      }),
+    }
   },
 
   getJoinState(takeover: Takeover) {
@@ -866,15 +900,33 @@ Page({
 
   openReportSheet(event: WechatMiniprogram.TouchEvent) {
     const userId = event.currentTarget.dataset.userid as string
+    const openid = event.currentTarget.dataset.openid as string
     const nickname = event.currentTarget.dataset.nickname as string
+    const index = Number(event.currentTarget.dataset.index)
+    const reportUserKey = userId || openid
+    const takeover = this.data.takeover
+    const targetUser = takeover && index >= 0 ? takeover.participants[index] : null
 
+    if (!reportUserKey) {
+      return
+    }
     if (!userId) {
+      wx.showToast({ title: '用户信息异常，无法举报', icon: 'none' })
+      return
+    }
+    if (targetUser && targetUser.isSelf) {
+      wx.showToast({ title: '不能举报自己', icon: 'none' })
+      return
+    }
+    if (this.data.reportedUserKeys.indexOf(reportUserKey) >= 0) {
+      wx.showToast({ title: '已举报过该用户', icon: 'none' })
       return
     }
 
     this.setData({
       showReportSheet: true,
       reportUserId: userId,
+      reportUserKey,
       reportNickname: nickname || '玩家',
       reportContent: '',
       reportImageUrl: '',
@@ -951,8 +1003,18 @@ Page({
   submitReport() {
     const takeover = this.data.takeover
     const content = this.data.reportContent.trim()
+    const reportUserKey = this.data.reportUserKey
+    const targetUser = takeover ? takeover.participants.find(participant => getUserKey(participant) === reportUserKey || participant.userId === this.data.reportUserId) : null
 
-    if (!takeover || !this.data.reportUserId || this.data.isSubmittingReport) {
+    if (!takeover || !this.data.reportUserId || !reportUserKey || this.data.isSubmittingReport) {
+      return
+    }
+    if (targetUser && targetUser.isSelf) {
+      wx.showToast({ title: '不能举报自己', icon: 'none' })
+      return
+    }
+    if (this.data.reportedUserKeys.indexOf(reportUserKey) >= 0) {
+      wx.showToast({ title: '已举报过该用户', icon: 'none' })
       return
     }
     if (!content) {
@@ -967,13 +1029,17 @@ Page({
       data: {
         reportedUserId: Number(this.data.reportUserId),
         content,
-        imageUrl: this.data.reportImageUrl,
         imageUrls: this.data.reportImageUrls,
       },
     })
       .then(() => {
         wx.showToast({ title: '已提交举报', icon: 'success' })
-        this.setData({ showReportSheet: false })
+        const reportedUserKeys = this.data.reportedUserKeys.concat(reportUserKey)
+        this.setData({
+          showReportSheet: false,
+          reportedUserKeys,
+          takeover: takeover ? this.withReportState(takeover, reportedUserKeys) : takeover,
+        })
       })
       .catch(error => {
         wx.showToast({ title: error.message || '提交失败', icon: 'none' })

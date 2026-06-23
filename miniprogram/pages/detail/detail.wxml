@@ -55,7 +55,7 @@
             <text class="member-steam">SteamID：{{item.steamId}}</text>
           </view>
           <button class="copy-button" wx:if="{{takeover.statusLabel !== '已结束'}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
-          <button class="report-button" wx:else data-userid="{{item.userId}}" data-nickname="{{item.nickName}}" bindtap="openReportSheet">举报</button>
+          <button class="report-button {{!item.canReport ? 'report-button-disabled' : ''}}" wx:elif="{{!item.isSelf}}" disabled="{{!item.canReport}}" data-index="{{index}}" data-userid="{{item.userId}}" data-openid="{{item.openid}}" data-nickname="{{item.nickName}}" bindtap="openReportSheet">{{item.reportStatus}}</button>
         </view>
       </view>
     </view>

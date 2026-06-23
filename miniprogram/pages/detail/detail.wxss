@@ -649,6 +649,12 @@ button::after {
   box-shadow: 0 8rpx 18rpx rgba(239, 68, 68, 0.22);
 }
 
+.report-button-disabled {
+  background: rgba(53, 21, 86, 0.12);
+  color: rgba(53, 21, 86, 0.42);
+  box-shadow: none;
+}
+
 .member-steam {
   color: rgba(53, 21, 86, 0.58);
 }
