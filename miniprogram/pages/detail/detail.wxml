@@ -54,7 +54,8 @@
             </view>
             <text class="member-steam">SteamID：{{item.steamId}}</text>
           </view>
-          <button class="report-button" data-userid="{{item.userId}}" data-nickname="{{item.nickName}}" bindtap="openReportSheet">举报</button>
+          <button class="copy-button" wx:if="{{takeover.statusLabel !== '已结束'}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
+          <button class="report-button" wx:else data-userid="{{item.userId}}" data-nickname="{{item.nickName}}" bindtap="openReportSheet">举报</button>
         </view>
       </view>
     </view>

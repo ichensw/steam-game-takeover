@@ -851,6 +851,18 @@ Page({
     })
   },
 
+  copySteamId(event: WechatMiniprogram.TouchEvent) {
+    const steamId = event.currentTarget.dataset.steamid as string
+    if (!steamId) return
+
+    wx.setClipboardData({
+      data: steamId,
+      success: () => {
+        wx.showToast({ title: '已复制 SteamID', icon: 'success' })
+      },
+    })
+  },
+
   openReportSheet(event: WechatMiniprogram.TouchEvent) {
     const userId = event.currentTarget.dataset.userid as string
     const nickname = event.currentTarget.dataset.nickname as string
