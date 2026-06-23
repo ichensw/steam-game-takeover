@@ -1,6 +1,7 @@
 {
   "usingComponents": {
-    "picker-field": "/components/picker-field/picker-field"
+    "picker-field": "/components/picker-field/picker-field",
+    "upload": "/components/upload/upload"
   },
   "navigationStyle": "custom"
 }

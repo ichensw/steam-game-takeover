@@ -1,0 +1,10 @@
+<view class="upload-row">
+  <view wx:for="{{images}}" wx:key="*this" class="upload-item">
+    <image class="upload-preview" src="{{item}}" mode="aspectFill" data-index="{{index}}" bindtap="preview"></image>
+    <view class="upload-remove" data-index="{{index}}" catchtap="remove">×</view>
+  </view>
+  <view wx:if="{{images.length < maxCount}}" class="upload-button {{isUploading ? 'upload-loading' : ''}}" bindtap="choose">
+    <text class="upload-plus" wx:if="{{!isUploading}}">+</text>
+    <text class="upload-text">{{isUploading ? '上传中' : 'Upload'}}</text>
+  </view>
+</view>

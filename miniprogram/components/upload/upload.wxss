@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.upload-row {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.upload-button {
+  width: 156rpx;
+  height: 156rpx;
+  flex: 0 0 156rpx;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: 2rpx dashed rgba(124, 60, 255, 0.28);
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.72);
+  color: #7c3cff;
+  font-size: 24rpx;
+  line-height: 1.2;
+  font-weight: 900;
+  text-align: center;
+}
+
+.upload-loading {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.upload-plus {
+  display: block;
+  margin-top: 34rpx;
+  font-size: 44rpx;
+  line-height: 48rpx;
+  font-weight: 500;
+}
+
+.upload-text {
+  display: block;
+  margin-top: 12rpx;
+}
+
+.upload-item {
+  position: relative;
+  width: 156rpx;
+  height: 156rpx;
+  flex: 0 0 156rpx;
+}
+
+.upload-preview {
+  width: 156rpx;
+  height: 156rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.upload-remove {
+  position: absolute;
+  top: -12rpx;
+  right: -12rpx;
+  width: 38rpx;
+  height: 38rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(53, 21, 86, 0.86);
+  color: #ffffff;
+  text-align: center;
+  font-size: 28rpx;
+  line-height: 38rpx;
+}

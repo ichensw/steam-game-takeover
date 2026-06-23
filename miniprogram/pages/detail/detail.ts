@@ -507,6 +507,7 @@ Page({
     reportNickname: '',
     reportContent: '',
     reportImageUrl: '',
+    reportImageUrls: [] as string[],
     isUploadingReportImage: false,
     isSubmittingReport: false,
   },
@@ -877,6 +878,7 @@ Page({
       reportNickname: nickname || '玩家',
       reportContent: '',
       reportImageUrl: '',
+      reportImageUrls: [],
     })
   },
 
@@ -891,25 +893,29 @@ Page({
     this.setData({ reportContent: event.detail.value })
   },
 
-  chooseReportImage() {
+  chooseReportImage(event: WechatMiniprogram.CustomEvent<{ count?: number }>) {
     if (this.data.isUploadingReportImage) {
       return
     }
 
     wx.chooseMedia({
-      count: 1,
+      count: event.detail.count || 1,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       success: result => {
-        const filePath = result.tempFiles[0] && result.tempFiles[0].tempFilePath
-        if (!filePath) {
+        const filePaths = result.tempFiles.map(file => file.tempFilePath).filter(Boolean)
+        if (!filePaths.length) {
           return
         }
 
         this.setData({ isUploadingReportImage: true })
-        uploadImage(filePath)
-          .then(url => {
-            this.setData({ reportImageUrl: url })
+        Promise.all(filePaths.map(filePath => uploadImage(filePath)))
+          .then(urls => {
+            const reportImageUrls = this.data.reportImageUrls.concat(urls)
+            this.setData({
+              reportImageUrl: reportImageUrls[0] || '',
+              reportImageUrls,
+            })
             wx.showToast({ title: '截图已上传', icon: 'success' })
           })
           .catch(error => {
@@ -919,6 +925,26 @@ Page({
             this.setData({ isUploadingReportImage: false })
           })
       },
+    })
+  },
+
+  removeReportImage(event: WechatMiniprogram.CustomEvent<{ index: number }>) {
+    const index = Number(event.detail.index)
+    if (index < 0 || index >= this.data.reportImageUrls.length) return
+    const reportImageUrls = this.data.reportImageUrls.filter((_, itemIndex) => itemIndex !== index)
+    this.setData({
+      reportImageUrl: reportImageUrls[0] || '',
+      reportImageUrls,
+    })
+  },
+
+  previewReportImage(event: WechatMiniprogram.CustomEvent<{ index: number }>) {
+    const index = Number(event.detail.index)
+    const urls = this.data.reportImageUrls
+    if (index < 0 || index >= urls.length) return
+    wx.previewImage({
+      current: urls[index],
+      urls,
     })
   },
 
@@ -942,6 +968,7 @@ Page({
         reportedUserId: Number(this.data.reportUserId),
         content,
         imageUrl: this.data.reportImageUrl,
+        imageUrls: this.data.reportImageUrls,
       },
     })
       .then(() => {

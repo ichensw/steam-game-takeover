@@ -151,14 +151,11 @@
     <view class="edit-form">
       <view class="edit-field">
         <text class="edit-label">举报内容</text>
-        <textarea class="admin-textarea report-textarea" value="{{reportContent}}" maxlength="500" placeholder="请描述违规行为、时间或相关情况" placeholder-class="placeholder" bindinput="handleReportContentInput" />
+        <textarea class="admin-textarea report-textarea" value="{{reportContent}}" maxlength="500" placeholder="请描述违规行为、时间或相关情况" placeholder-class="report-placeholder" bindinput="handleReportContentInput" />
       </view>
       <view class="edit-field">
         <text class="edit-label">举报截图（选填）</text>
-        <button class="report-image-button" loading="{{isUploadingReportImage}}" disabled="{{isUploadingReportImage}}" bindtap="chooseReportImage">
-          {{reportImageUrl ? '重新上传截图' : '上传截图'}}
-        </button>
-        <image wx:if="{{reportImageUrl}}" class="report-preview" src="{{reportImageUrl}}" mode="aspectFill"></image>
+        <upload class="report-upload" images="{{reportImageUrls}}" max-count="{{9}}" is-uploading="{{isUploadingReportImage}}" bindchoose="chooseReportImage" bindremove="removeReportImage" bindpreview="previewReportImage" />
       </view>
     </view>
 
