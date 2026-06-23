@@ -65,6 +65,7 @@ button::after {
 }
 
 .avatar-ring {
+  position: relative;
   width: 214rpx;
   height: 214rpx;
   display: flex;
@@ -154,6 +155,25 @@ button::after {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
+}
+
+.profile-edit-button {
+  position: absolute;
+  right: 4rpx;
+  bottom: 20rpx;
+  width: 58rpx;
+  height: 58rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8rpx 20rpx rgba(82, 24, 154, 0.32);
+}
+
+.profile-edit-icon {
+  width: 28rpx;
+  height: 28rpx;
 }
 
 .stat-emoji {

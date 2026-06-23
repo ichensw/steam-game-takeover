@@ -1,4 +1,6 @@
+{
 type Gender = 'male' | 'female'
+type ProfileMode = 'complete' | 'edit'
 
 type ApiResponse<T> = {
   success?: boolean
@@ -8,9 +10,10 @@ type ApiResponse<T> = {
 }
 
 type User = {
+  nickName?: string
   nickname: string
   steamId: string
-  gender?: number
+  gender?: number | string
   avatarUrl: string
   creditScore?: number
   creditStatus?: string
@@ -39,6 +42,16 @@ type Summary = {
   recent?: RecentTakeover[]
 }
 
+type ApiRequestOptions = {
+  url: string
+  method?: 'GET' | 'PUT'
+  data?: WechatMiniprogram.IAnyObject
+}
+
+type UploadResult = {
+  url?: string
+}
+
 const TOKEN_KEY = 'steam_takeover_token'
 const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
@@ -56,31 +69,98 @@ const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
 const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
   !!value && typeof value === 'object' && 'success' in value
 
-const apiRequest = <T>(url: string) =>
+const parseUploadResponse = (value: string) => {
+  try {
+    return JSON.parse(value) as ApiResponse<UploadResult> | UploadResult
+  } catch {
+    return null
+  }
+}
+
+const apiRequest = <T>(options: string | ApiRequestOptions) =>
   new Promise<T>((resolve, reject) => {
+    const requestOptions = typeof options === 'string' ? { url: options } : options
     wx.request<WechatMiniprogram.IAnyObject>({
-      url: `${API_BASE_URL}${url}`,
+      url: `${API_BASE_URL}${requestOptions.url}`,
+      method: requestOptions.method || 'GET',
+      data: requestOptions.data,
       header: {
+        'content-type': 'application/json',
         Authorization: `Bearer ${getUserToken()}`,
       },
       success: response => {
-        const body = response.data as ApiResponse<T>
+        const responseData = response.data as T | ApiResponse<T>
+        const body = responseData as ApiResponse<T>
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error(body.message || body.code || `请求失败：${response.statusCode}`))
+          reject(new Error((body && (body.message || body.code)) || `请求失败：${response.statusCode}`))
           return
         }
-        resolve(isApiResponse<T>(body) ? (body.data as T) : (response.data as T))
+        if (isApiResponse<T>(body)) {
+          if (body.success === false) {
+            reject(new Error(body.message || body.code || '请求失败'))
+            return
+          }
+          resolve((body.data || null) as T)
+          return
+        }
+        resolve(responseData as T)
       },
       fail: error => reject(new Error(error.errMsg || '网络请求失败')),
     })
   })
 
+const uploadImage = (filePath: string) =>
+  new Promise<string>((resolve, reject) => {
+    wx.uploadFile({
+      url: `${API_BASE_URL}/api/uploads/image`,
+      filePath,
+      name: 'file',
+      header: { Authorization: `Bearer ${getUserToken()}` },
+      success: response => {
+        const body = parseUploadResponse(response.data)
+        const data = body && isApiResponse<UploadResult>(body) ? body.data : body
+        if (response.statusCode < 200 || response.statusCode >= 300 || !data?.url) {
+          reject(new Error(body && isApiResponse<UploadResult>(body) ? body.message || body.code || '上传失败' : '上传失败'))
+          return
+        }
+        resolve(data.url)
+      },
+      fail: error => reject(new Error(error.errMsg || '上传失败')),
+    })
+  })
+
+const toApiGender = (gender: Gender) => (gender === 'male' ? 1 : 2)
+
+const normalizeGender = (gender: unknown): Gender | '' => {
+  if (gender === 'male' || gender === 1 || gender === '1' || gender === '男') return 'male'
+  if (gender === 'female' || gender === 2 || gender === '2' || gender === '女') return 'female'
+  return ''
+}
+
 const avatarFor = (user: User) => {
   if (user.avatarUrl) return user.avatarUrl
-  return user.gender === 1 ? MALE_AVATAR_URL : FEMALE_AVATAR_URL
+  return normalizeGender(user.gender) === 'male' ? MALE_AVATAR_URL : FEMALE_AVATAR_URL
 }
 
 const creditStatusFor = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
+
+const normalizeUser = (user: Partial<User> | null | undefined, fallback: User): User => {
+  const rawUser = user || {}
+  const creditScore = Number(rawUser.creditScore ?? fallback.creditScore ?? 100)
+  const nextUser = {
+    ...fallback,
+    ...rawUser,
+    nickname: rawUser.nickname || rawUser.nickName || fallback.nickname || '',
+    steamId: rawUser.steamId || fallback.steamId || '',
+    creditScore,
+    creditStatus: rawUser.creditStatus || fallback.creditStatus || creditStatusFor(creditScore),
+  } as User
+
+  return {
+    ...nextUser,
+    avatarUrl: avatarFor(nextUser),
+  }
+}
 
 const formatCardTakeover = (takeover: RecentTakeover) => {
   const statusTone = takeover.statusLabel === '已结束' ? 'ended' : takeover.statusLabel === '已满员' ? 'purple' : 'orange'
@@ -96,6 +176,7 @@ Page({
   data: {
     backgroundUrl: PROFILE_BG_URL,
     femaleAvatarUrl: FEMALE_AVATAR_URL,
+    maleAvatarUrl: MALE_AVATAR_URL,
     user: {
       nickname: '',
       steamId: '',
@@ -107,6 +188,17 @@ Page({
     joinedCount: 0,
     recent: [] as RecentTakeover[],
     isLoading: false,
+    showProfileSheet: false,
+    profileMode: 'edit' as ProfileMode,
+    editNickname: '',
+    editSteamId: '',
+    editGender: '' as Gender | '',
+    editAvatarUrl: '',
+    editNicknameError: '',
+    editSteamIdError: '',
+    editGenderError: '',
+    isUploadingAvatar: false,
+    isSavingProfile: false,
   },
 
   onLoad() {
@@ -121,18 +213,17 @@ Page({
     this.setData({ isLoading: true })
     apiRequest<Summary>('/api/me/summary')
       .then(summary => {
-        const user = summary.user || this.data.user
+        const safeSummary = summary || {}
+        const normalizedUser = normalizeUser(safeSummary.user, this.data.user)
         this.setData({
-          user: {
-            ...user,
-            avatarUrl: avatarFor(user),
-            creditScore: Number(user.creditScore ?? 100),
-            creditStatus: user.creditStatus || creditStatusFor(Number(user.creditScore ?? 100)),
-          },
-          createdCount: Number(summary.createdCount || 0),
-          joinedCount: Number(summary.joinedCount || 0),
-          recent: (summary.recent || []).map(formatCardTakeover),
+          user: normalizedUser,
+          createdCount: Number(safeSummary.createdCount || 0),
+          joinedCount: Number(safeSummary.joinedCount || 0),
+          recent: (safeSummary.recent || []).map(formatCardTakeover),
         })
+        if (!normalizedUser.nickname || !normalizedUser.steamId || !normalizedUser.gender) {
+          this.openCompleteProfileSheet()
+        }
       })
       .catch(error => {
         wx.showToast({ title: error.message || '加载失败', icon: 'none' })
@@ -165,6 +256,129 @@ Page({
     })
   },
 
+  openCompleteProfileSheet() {
+    this.setData({
+      showProfileSheet: true,
+      profileMode: 'complete',
+      editNickname: this.data.user.nickname || '',
+      editSteamId: this.data.user.steamId || '',
+      editGender: normalizeGender(this.data.user.gender),
+      editAvatarUrl: this.data.user.avatarUrl || this.data.femaleAvatarUrl,
+      editNicknameError: '',
+      editSteamIdError: '',
+      editGenderError: '',
+    })
+  },
+
+  openProfileSheet() {
+    if (!this.data.user.nickname || !this.data.user.steamId || !this.data.user.gender) return
+    this.setData({
+      showProfileSheet: true,
+      profileMode: 'edit',
+      editNickname: this.data.user.nickname || '',
+      editSteamId: this.data.user.steamId || '',
+      editGender: normalizeGender(this.data.user.gender),
+      editAvatarUrl: this.data.user.avatarUrl || this.data.femaleAvatarUrl,
+      editNicknameError: '',
+      editSteamIdError: '',
+      editGenderError: '',
+    })
+  },
+
+  closeProfileSheet() {
+    if (this.data.profileMode === 'complete' || this.data.isSavingProfile) return
+    this.setData({ showProfileSheet: false })
+  },
+
+  handleNicknameInput(event: WechatMiniprogram.Input) {
+    this.setData({ editNickname: String(event.detail.value || '').trim(), editNicknameError: '' })
+  },
+
+  handleSteamIdInput(event: WechatMiniprogram.Input) {
+    if (this.data.user.steamId) return
+    this.setData({ editSteamId: String(event.detail.value || '').trim(), editSteamIdError: '' })
+  },
+
+  selectGender(event: WechatMiniprogram.TouchEvent & { detail?: { gender?: Gender } }) {
+    const gender = (event.detail?.gender || event.currentTarget.dataset.gender) as Gender
+    if (gender !== 'male' && gender !== 'female') return
+    this.setData({
+      editGender: gender,
+      editAvatarUrl: gender === 'male' ? MALE_AVATAR_URL : FEMALE_AVATAR_URL,
+      editGenderError: '',
+    })
+  },
+
+  chooseAvatar() {
+    if (this.data.isUploadingAvatar) return
+
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: result => {
+        const filePath = result.tempFiles[0]?.tempFilePath
+        if (!filePath) return
+
+        this.setData({ isUploadingAvatar: true })
+        uploadImage(filePath)
+          .then(url => this.setData({ editAvatarUrl: url }))
+          .catch(error => wx.showToast({ title: error.message || '上传失败', icon: 'none' }))
+          .finally(() => this.setData({ isUploadingAvatar: false }))
+      },
+    })
+  },
+
+  saveProfile() {
+    const nickname = this.data.editNickname.trim()
+    const steamId = this.data.editSteamId.trim()
+    const gender = this.data.editGender
+    const isCompleteMode = this.data.profileMode === 'complete'
+
+    if (!nickname) {
+      this.setData({ editNicknameError: '请输入昵称' })
+      return
+    }
+
+    if (isCompleteMode) {
+      const steamIdError = steamId ? (/^[0-9A-Za-z_:.-]{3,32}$/.test(steamId) ? '' : 'SteamID 格式不对') : '请输入 SteamID'
+      const genderError = gender ? '' : '请选择性别'
+      if (steamIdError || genderError) {
+        this.setData({ editSteamIdError: steamIdError, editGenderError: genderError })
+        return
+      }
+    }
+
+    const avatarUrl = this.data.editAvatarUrl || (gender === 'male' ? MALE_AVATAR_URL : FEMALE_AVATAR_URL)
+    const data = isCompleteMode
+      ? { nickName: nickname, nickname, steamId, gender: toApiGender(gender as Gender), avatarUrl }
+      : { nickName: nickname, nickname, steamId: this.data.user.steamId, gender: this.data.user.gender, avatarUrl }
+
+    this.setData({ isSavingProfile: true })
+    apiRequest<Partial<User>>({
+      url: '/api/me/profile',
+      method: 'PUT',
+      data,
+    })
+      .then(user => {
+        const savedUser = user || {}
+        const nextUser = normalizeUser({
+          ...this.data.user,
+          ...savedUser,
+          nickname: savedUser.nickname || savedUser.nickName || nickname,
+          steamId: savedUser.steamId || steamId || this.data.user.steamId,
+          gender: savedUser.gender || (isCompleteMode ? toApiGender(gender as Gender) : this.data.user.gender),
+          avatarUrl: savedUser.avatarUrl || avatarUrl,
+        }, this.data.user)
+        this.setData({
+          user: nextUser,
+          showProfileSheet: false,
+        })
+      })
+      .catch(error => wx.showToast({ title: error.message || '保存失败', icon: 'none' }))
+      .finally(() => this.setData({ isSavingProfile: false }))
+  },
+
   goBack() {
     if (getCurrentPages().length > 1) {
       wx.navigateBack()
@@ -173,3 +387,4 @@ Page({
     wx.redirectTo({ url: '/pages/index/index' })
   },
 })
+}

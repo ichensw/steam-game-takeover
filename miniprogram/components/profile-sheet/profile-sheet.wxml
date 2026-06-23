@@ -1,0 +1,45 @@
+<view class="sheet-mask" wx:if="{{visible}}" bindtap="close"></view>
+<view class="profile-sheet" wx:if="{{visible}}">
+  <view class="sheet-handle"></view>
+  <view class="sheet-title-row">
+    <text class="sheet-title">{{mode === 'complete' ? '补充资料' : '编辑资料'}}</text>
+    <view class="close-button" wx:if="{{mode !== 'complete'}}" bindtap="close">×</view>
+  </view>
+
+  <view class="edit-avatar" bindtap="chooseAvatar">
+    <image class="edit-avatar-image" src="{{avatarUrl || femaleAvatarUrl}}" mode="aspectFill"></image>
+    <view class="edit-avatar-badge">{{isUploading ? '上传中' : '换头像'}}</view>
+  </view>
+
+  <view class="field" wx:if="{{mode === 'complete'}}">
+    <text class="field-label">性别</text>
+    <view class="gender-grid">
+      <button class="gender-option {{gender === 'male' ? 'gender-active' : ''}}" data-gender="male" bindtap="selectGender">
+        <image class="gender-avatar" src="{{maleAvatarUrl}}" mode="aspectFill"></image>
+        <image class="gender-icon" src="/assets/gender-male.svg" mode="aspectFit"></image>
+      </button>
+      <button class="gender-option {{gender === 'female' ? 'gender-active' : ''}}" data-gender="female" bindtap="selectGender">
+        <image class="gender-avatar" src="{{femaleAvatarUrl}}" mode="aspectFill"></image>
+        <image class="gender-icon" src="/assets/gender-female.svg" mode="aspectFit"></image>
+      </button>
+    </view>
+    <text class="field-error" wx:if="{{genderError}}">{{genderError}}</text>
+  </view>
+
+  <view class="field">
+    <text class="field-label">昵称</text>
+    <input class="field-input" value="{{nickname}}" type="nickname" placeholder="怎么称呼你" placeholder-class="placeholder" bindinput="handleNicknameInput" />
+    <text class="field-error" wx:if="{{nicknameError}}">{{nicknameError}}</text>
+  </view>
+
+  <view class="field" wx:if="{{mode === 'complete'}}">
+    <text class="field-label">SteamID</text>
+    <input class="field-input" value="{{steamId}}" placeholder="输入 SteamID" placeholder-class="placeholder" disabled="{{steamIdLocked}}" bindinput="handleSteamIdInput" />
+    <text class="field-warning">保存后不能自行修改，请确认无误</text>
+    <text class="field-error" wx:if="{{steamIdError}}">{{steamIdError}}</text>
+  </view>
+
+  <button class="sheet-submit" loading="{{isSaving}}" disabled="{{isSaving || isUploading}}" bindtap="save">
+    {{isSaving ? '保存中...' : '保存'}}
+  </button>
+</view>

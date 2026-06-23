@@ -8,11 +8,14 @@
     </view>
 
     <view class="hero">
-      <view class="avatar-ring">
+      <view class="avatar-ring" bindtap="openProfileSheet">
         <image class="avatar" src="{{user.avatarUrl || femaleAvatarUrl}}" mode="aspectFill"></image>
+        <view class="profile-edit-button" wx:if="{{user.nickname && user.steamId && user.gender}}" bindtap="openProfileSheet">
+          <image class="profile-edit-icon" src="/assets/edit.svg" mode="aspectFit"></image>
+        </view>
       </view>
       <view class="hero-copy">
-        <text class="nickname">{{user.nickname || '兔兔玩家'}}</text>
+        <text class="nickname" bindtap="openProfileSheet">{{user.nickname || '兔兔玩家'}}</text>
         <view class="steam-row">
           <text>ID：{{user.steamId || '未填写'}}</text>
           <view class="copy-mini" wx:if="{{user.steamId}}" bindtap="copySteamId">复制</view>
@@ -64,4 +67,27 @@
       <text class="loading-text">加载中</text>
     </view>
   </view>
+
+  <profile-sheet
+    visible="{{showProfileSheet}}"
+    mode="{{profileMode}}"
+    nickname="{{editNickname}}"
+    steam-id="{{editSteamId}}"
+    steam-id-locked="{{user.steamId}}"
+    gender="{{editGender}}"
+    avatar-url="{{editAvatarUrl}}"
+    male-avatar-url="{{maleAvatarUrl}}"
+    female-avatar-url="{{femaleAvatarUrl}}"
+    nickname-error="{{editNicknameError}}"
+    steam-id-error="{{editSteamIdError}}"
+    gender-error="{{editGenderError}}"
+    is-uploading="{{isUploadingAvatar}}"
+    is-saving="{{isSavingProfile}}"
+    bindclose="closeProfileSheet"
+    bindchooseavatar="chooseAvatar"
+    bindselectgender="selectGender"
+    bindnicknameinput="handleNicknameInput"
+    bindsteamidinput="handleSteamIdInput"
+    bindsave="saveProfile"
+  />
 </scroll-view>

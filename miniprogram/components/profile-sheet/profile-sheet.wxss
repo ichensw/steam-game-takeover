@@ -1,0 +1,170 @@
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(14, 4, 46, 0.68);
+}
+
+.profile-sheet {
+  position: fixed;
+  left: 34rpx;
+  right: 34rpx;
+  bottom: calc(28rpx + env(safe-area-inset-bottom));
+  z-index: 21;
+  max-height: 86vh;
+  padding: 18rpx 28rpx 30rpx;
+  border-radius: 30rpx;
+  background: #faebff;
+  box-shadow: 0 22rpx 54rpx rgba(39, 12, 96, 0.34);
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.sheet-handle {
+  width: 82rpx;
+  height: 8rpx;
+  margin: 0 auto 20rpx;
+  border-radius: 999rpx;
+  background: rgba(124, 60, 255, 0.22);
+}
+
+.sheet-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.sheet-title {
+  color: #351556;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.close-button {
+  width: 54rpx;
+  height: 54rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(124, 60, 255, 0.12);
+  color: #7c3cff;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.edit-avatar {
+  position: relative;
+  width: 150rpx;
+  height: 150rpx;
+  margin: 0 auto 24rpx;
+}
+
+.edit-avatar-image {
+  width: 150rpx;
+  height: 150rpx;
+  border-radius: 50%;
+  border: 6rpx solid rgba(255, 118, 252, 0.82);
+  box-sizing: border-box;
+}
+
+.edit-avatar-badge {
+  position: absolute;
+  left: 50%;
+  bottom: -8rpx;
+  transform: translateX(-50%);
+  padding: 5rpx 14rpx;
+  border-radius: 999rpx;
+  background: #7c3cff;
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.field {
+  margin-bottom: 24rpx;
+}
+
+.gender-grid {
+  display: flex;
+  justify-content: space-between;
+}
+
+.gender-option {
+  width: calc(50% - 14rpx);
+  min-width: 0;
+  height: 112rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  border: 2rpx solid rgba(124, 60, 255, 0.14);
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.72);
+  box-sizing: border-box;
+}
+
+.gender-active {
+  border-color: rgba(255, 92, 185, 0.82);
+  background: rgba(255, 239, 252, 0.96);
+  box-shadow: 0 10rpx 24rpx rgba(255, 92, 185, 0.16);
+}
+
+.gender-avatar {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+}
+
+.gender-icon {
+  width: 34rpx;
+  height: 34rpx;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 10rpx;
+  color: rgba(53, 21, 86, 0.72);
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.field-input {
+  height: 82rpx;
+  padding: 0 22rpx;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.86);
+  color: #351556;
+  font-size: 28rpx;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.field-error {
+  display: block;
+  margin-top: 8rpx;
+  color: #ff4d8d;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.field-warning {
+  display: block;
+  margin-top: 8rpx;
+  color: rgba(53, 21, 86, 0.52);
+  font-size: 21rpx;
+  line-height: 30rpx;
+  font-weight: 700;
+}
+
+.sheet-submit {
+  width: 100%;
+  height: 82rpx;
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, #7c3cff 0%, #ff5cb9 100%);
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 900;
+}

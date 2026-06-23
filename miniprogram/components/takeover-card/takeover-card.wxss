@@ -113,10 +113,10 @@
   max-width: 260rpx;
   height: 56rpx;
   margin-bottom: 18rpx;
-  padding: 0 20rpx;
+  padding: 0 18rpx 0 12rpx;
   display: inline-flex;
   align-items: center;
-  gap: 10rpx;
+  gap: 6rpx;
   border-radius: 22rpx;
   background: linear-gradient(135deg, #6b35f1 0%, #8c3cff 100%);
   box-shadow: 0 8rpx 16rpx rgba(91, 47, 212, 0.28);
@@ -125,7 +125,7 @@
 
 .creator-icon {
   color: #ffffff;
-  font-size: 24rpx;
+  font-size: 32rpx;
   line-height: 1;
 }
 

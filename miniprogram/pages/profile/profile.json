@@ -1,6 +1,7 @@
 {
   "usingComponents": {
-    "takeover-card": "/components/takeover-card/takeover-card"
+    "takeover-card": "/components/takeover-card/takeover-card",
+    "profile-sheet": "/components/profile-sheet/profile-sheet"
   },
   "navigationStyle": "custom"
 }

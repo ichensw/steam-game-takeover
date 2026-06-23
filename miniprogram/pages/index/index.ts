@@ -1,4 +1,4 @@
-type PendingAction = 'view' | 'join' | 'create'
+type PendingAction = 'view' | 'join' | 'create' | 'profile'
 type Gender = 'male' | 'female'
 type ScheduleType = 'once' | 'daily' | 'range'
 type TimeFilter = 'all' | 'today' | 'tomorrow' | 'daily' | 'week' | 'range'
@@ -124,6 +124,8 @@ type ProfilePayload = {
   steamId: string
   gender: Gender
   avatarUrl: string
+  creditScore?: number
+  creditStatus?: string
 }
 
 const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
@@ -139,6 +141,12 @@ const parseUploadResponse = (value: string) => {
 
 const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
   !!value && typeof value === 'object' && 'success' in value
+
+const apiError = (body: ApiResponse<unknown> | null | undefined, fallback: string) => {
+  const error = new Error((body && (body.message || body.code)) || fallback) as Error & { code?: string }
+  error.code = body?.code
+  return error
+}
 
 const apiRequest = <T>(options: ApiRequestOptions) => {
   return new Promise<T>((resolve, reject) => {
@@ -166,13 +174,13 @@ const apiRequest = <T>(options: ApiRequestOptions) => {
         const body = responseData as ApiResponse<T>
 
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error((body && (body.code || body.message)) || `请求失败：${response.statusCode}`))
+          reject(apiError(body, `请求失败：${response.statusCode}`))
           return
         }
 
         if (isApiResponse<T>(body)) {
           if (body.success === false) {
-            reject(new Error(body.message || body.code || '请求失败'))
+            reject(apiError(body, '请求失败'))
             return
           }
 
@@ -856,6 +864,7 @@ const mockTakeovers: Takeover[] = [
 
 const ENABLE_MOCK_DATA = false
 let allTakeovers = ENABLE_MOCK_DATA ? [...mockTakeovers] : []
+let searchTimer: number | undefined
 
 const getStoredProfile = (): UserProfile | null => {
   const userProfile = wx.getStorageSync(PROFILE_KEY)
@@ -881,6 +890,9 @@ const getStoredProfile = (): UserProfile | null => {
 
   return null
 }
+
+const isCompleteProfile = (profile: { nickName?: string; steamId?: string; gender?: Gender | '' } | null | undefined) =>
+  !!profile?.nickName && !!profile.steamId && (profile.gender === 'male' || profile.gender === 'female')
 
 const getServerTimeFilter = (timeFilter: TimeFilter, rangeFilter: RangeFilter) => {
   const timeFilterMap: Record<TimeFilter, string> = {
@@ -924,6 +936,7 @@ Component({
     isBlocked: false,
     blockedMessage: '',
     publishTakeoverEnabled: false,
+    profileCompleted: false,
     isAdmin: false,
     showProfileSheet: false,
     showCreateSheet: false,
@@ -987,8 +1000,7 @@ Component({
 
   pageLifetimes: {
     show() {
-      const needsRefresh = wx.getStorageSync(HOME_REFRESH_KEY)
-      if (!needsRefresh || !getUserToken() || this.data.isAuthorizing || this.data.isBlocked) {
+      if (!getUserToken() || this.data.isAuthorizing || this.data.isBlocked) {
         return
       }
 
@@ -1025,6 +1037,7 @@ Component({
                 wx.setStorageSync(PROFILE_KEY, normalizedProfile)
                 getApp<IAppOption>().globalData.userProfile = normalizedProfile
                 this.setData({
+                  profileCompleted: true,
                   nickName: normalizedProfile.nickName,
                   steamId: normalizedProfile.steamId,
                   steamIdLocked: !!normalizedProfile.steamId,
@@ -1032,6 +1045,19 @@ Component({
                   avatarUrl: normalizedProfile.avatarUrl,
                   creditScore: normalizedProfile.creditScore ?? 100,
                   creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore ?? 100),
+                })
+              } else {
+                wx.removeStorageSync(PROFILE_KEY)
+                getApp<IAppOption>().globalData.userProfile = undefined
+                this.setData({
+                  profileCompleted: false,
+                  nickName: '',
+                  steamId: '',
+                  steamIdLocked: false,
+                  gender: '',
+                  avatarUrl: '',
+                  creditScore: 100,
+                  creditStatus: 'normal',
                 })
               }
 
@@ -1103,10 +1129,16 @@ Component({
     },
 
     handleSearchInput(event: WechatMiniprogram.Input) {
-      this.applyFilters(event.detail.value, this.data.activeTimeFilter)
+      const keyword = event.detail.value
+      this.setData({ searchKeyword: keyword })
+      if (searchTimer) clearTimeout(searchTimer)
+      searchTimer = setTimeout(() => {
+        this.applyFilters(keyword, this.data.activeTimeFilter)
+      }, 500) as unknown as number
     },
 
     clearSearch() {
+      if (searchTimer) clearTimeout(searchTimer)
       this.applyFilters('', this.data.activeTimeFilter)
     },
 
@@ -1180,6 +1212,7 @@ Component({
     },
 
     applyFilters(keyword: string, timeFilter: TimeFilter, nextRangeFilter?: RangeFilter) {
+      if (searchTimer) clearTimeout(searchTimer)
       const rangeFilter = nextRangeFilter || {
         startDate: this.data.rangeStartDate,
         endDate: this.data.rangeEndDate,
@@ -1338,7 +1371,61 @@ Component({
         return
       }
 
-      const userProfile = getStoredProfile()
+      const pageProfile = isCompleteProfile({
+        nickName: this.data.nickName,
+        steamId: this.data.steamId,
+        gender: this.data.gender,
+      })
+        ? {
+            nickName: this.data.nickName,
+            steamId: this.data.steamId,
+            gender: this.data.gender as Gender,
+            avatarUrl: this.data.avatarUrl || getGenderAvatar(this.data.gender),
+            creditScore: this.data.creditScore,
+            creditStatus: this.data.creditStatus,
+          }
+        : null
+      const userProfile = getStoredProfile() || pageProfile
+
+      if (!userProfile) {
+        if (!getUserToken()) {
+          this.openProfileSheetForAction(action, takeoverId)
+          return
+        }
+
+        this.setData({ isAuthorizing: true })
+        apiRequest<Record<string, any>>({
+          url: '/api/me/profile',
+        })
+          .then(result => {
+            const profile = normalizeUserProfile(result)
+            if (!profile) {
+              this.openProfileSheetForAction(action, takeoverId)
+              return
+            }
+
+            wx.setStorageSync(PROFILE_KEY, profile)
+            getApp<IAppOption>().globalData.userProfile = profile
+            this.setData({
+              nickName: profile.nickName,
+              steamId: profile.steamId,
+              steamIdLocked: !!profile.steamId,
+              gender: profile.gender,
+              avatarUrl: profile.avatarUrl,
+              creditScore: profile.creditScore ?? 100,
+              creditStatus: profile.creditStatus || getCreditStatus(profile.creditScore ?? 100),
+              profileCompleted: true,
+            })
+            this.completePendingAction(action)
+          })
+          .catch(() => {
+            this.openProfileSheetForAction(action, takeoverId)
+          })
+          .finally(() => {
+            this.setData({ isAuthorizing: false })
+          })
+        return
+      }
 
       if (userProfile) {
         if (action === 'create' && !canCreateWithCredit(userProfile.creditScore)) {
@@ -1354,7 +1441,12 @@ Component({
         return
       }
 
+    },
+
+    openProfileSheetForAction(action: PendingAction | '', takeoverId = '') {
       this.setData({
+        pendingAction: action,
+        pendingTakeoverId: takeoverId,
         showProfileSheet: true,
         nickNameError: '',
         steamIdError: '',
@@ -1418,11 +1510,11 @@ Component({
     },
 
     openProfilePage() {
-      wx.navigateTo({ url: '/pages/profile/profile' })
+      this.ensureProfile('profile', '')
     },
 
-    selectGender(event: WechatMiniprogram.TouchEvent) {
-      const gender = event.currentTarget.dataset.gender as Gender
+    selectGender(event: WechatMiniprogram.TouchEvent & { detail?: { gender?: Gender } }) {
+      const gender = (event.detail?.gender || event.currentTarget.dataset.gender) as Gender
 
       if (gender !== 'male' && gender !== 'female') {
         return
@@ -1505,6 +1597,7 @@ Component({
           avatarUrl: normalizedProfile.avatarUrl,
           creditScore: normalizedProfile.creditScore ?? 100,
           creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore ?? 100),
+          profileCompleted: true,
           showProfileSheet: closeSheet ? false : this.data.showProfileSheet,
         })
 
@@ -1514,7 +1607,7 @@ Component({
 
     handleNickNameInput(event: WechatMiniprogram.Input) {
       this.setData({
-        nickName: event.detail.value.trim(),
+        nickName: String(event.detail.value || '').trim(),
         nickNameError: '',
       })
     },
@@ -1525,7 +1618,7 @@ Component({
       }
 
       this.setData({
-        steamId: event.detail.value.trim(),
+        steamId: String(event.detail.value || '').trim(),
         steamIdError: '',
       })
     },
@@ -1864,13 +1957,7 @@ Component({
         return
       }
 
-      const userProfile = getStoredProfile()
       const editingTakeover = allTakeovers.find(takeover => takeover.id === this.data.editingTakeoverId)
-
-      if (!userProfile && !editingTakeover) {
-        wx.showToast({ title: '请先补充资料', icon: 'none' })
-        return
-      }
 
       const schedule = this.buildCreateSchedule(scheduleType, time)
       const payload = buildTakeoverPayload(title, limit, scheduleType, schedule, description)
@@ -1930,6 +2017,11 @@ Component({
           wx.showToast({ title: '已创建', icon: 'success' })
         })
         .catch(error => {
+          if (error.code === 'PROFILE_INCOMPLETE') {
+            this.openProfileSheetForAction('create')
+            return
+          }
+
           wx.showToast({ title: error.message || '创建失败', icon: 'none' })
         })
         .finally(() => {
@@ -2061,6 +2153,11 @@ Component({
         return
       }
 
+      if (action === 'profile') {
+        wx.navigateTo({ url: '/pages/profile/profile' })
+        return
+      }
+
       this.navigateToDetail(this.data.pendingTakeoverId)
     },
 
@@ -2147,7 +2244,7 @@ Component({
         return
       }
 
-      this.ensureProfile('join', takeover.id)
+      this.markTakeoverJoined(takeover.id)
     },
 
     copySteamId(event: WechatMiniprogram.TouchEvent) {
@@ -2244,6 +2341,11 @@ Component({
           this.openTakeoverDetail(takeoverId)
         })
         .catch(error => {
+          if (error.code === 'PROFILE_INCOMPLETE') {
+            this.openProfileSheetForAction('join', takeoverId)
+            return
+          }
+
           wx.showToast({ title: error.message || '加入失败', icon: 'none' })
         })
         .finally(() => {

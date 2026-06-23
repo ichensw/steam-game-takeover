@@ -84,7 +84,7 @@
 
 <view class="profile-float" bindtap="openProfilePage">
   <image class="profile-float-avatar" src="{{avatarUrl || femaleAvatarUrl}}" mode="aspectFill"></image>
-  <view class="credit-float credit-{{creditStatus}}">
+  <view class="credit-float credit-{{creditStatus}}" wx:if="{{profileCompleted}}">
     <text class="credit-float-value">{{creditScore}}</text>
   </view>
 </view>
@@ -96,73 +96,28 @@
   </view>
 </view>
 
-<view class="sheet-mask" wx:if="{{showProfileSheet}}" bindtap="closeProfileSheet"></view>
-<view class="profile-sheet" wx:if="{{showProfileSheet}}">
-  <view class="sheet-handle"></view>
-  <view class="sheet-title-row">
-    <text class="sheet-title">补充资料</text>
-    <view class="close-button" bindtap="closeProfileSheet">×</view>
-  </view>
-
-  <view class="avatar-preview {{gender ? '' : 'avatar-empty'}}" catchtap="chooseAvatar">
-    <image wx:if="{{avatarUrl}}" class="avatar" src="{{avatarUrl}}" mode="aspectFill" catchtap="chooseAvatar"></image>
-    <text wx:else class="avatar-placeholder" catchtap="chooseAvatar">?</text>
-    <view class="avatar-edit-badge" catchtap="chooseAvatar">
-      <image class="avatar-edit-icon" src="/assets/edit.svg" mode="aspectFit" catchtap="chooseAvatar"></image>
-    </view>
-    <view class="avatar-upload-mask" wx:if="{{isUploadingAvatar}}">
-      <text class="avatar-upload-text">上传中</text>
-    </view>
-  </view>
-
-  <view class="form">
-    <view class="field">
-      <text class="label">性别</text>
-      <view class="gender-grid">
-        <button class="gender-option {{gender === 'male' ? 'gender-active' : ''}}" data-gender="male" bindtap="selectGender">
-          <image class="gender-avatar" src="{{maleAvatarUrl}}" mode="aspectFill"></image>
-          <image class="gender-icon gender-icon-male" src="/assets/gender-male.svg" mode="aspectFit"></image>
-        </button>
-        <button class="gender-option {{gender === 'female' ? 'gender-active' : ''}}" data-gender="female" bindtap="selectGender">
-          <image class="gender-avatar" src="{{femaleAvatarUrl}}" mode="aspectFill"></image>
-          <image class="gender-icon gender-icon-female" src="/assets/gender-female.svg" mode="aspectFit"></image>
-        </button>
-      </view>
-      <text class="error" wx:if="{{genderError}}">{{genderError}}</text>
-    </view>
-
-    <view class="field">
-      <text class="label">昵称</text>
-      <input
-        class="input"
-        type="nickname"
-        value="{{nickName}}"
-        placeholder="怎么称呼你"
-        placeholder-class="placeholder"
-        bindinput="handleNickNameInput"
-      />
-      <text class="error" wx:if="{{nickNameError}}">{{nickNameError}}</text>
-    </view>
-
-    <view class="field">
-      <text class="label">SteamID</text>
-      <input
-        class="input"
-        value="{{steamId}}"
-        placeholder="输入 SteamID"
-        placeholder-class="placeholder"
-        disabled="{{steamIdLocked}}"
-        bindinput="handleSteamIdInput"
-      />
-      <text class="field-warning">重要：SteamID 保存后不可自行修改，请确认无误；如填写错误，只能联系管理员处理</text>
-      <text class="error" wx:if="{{steamIdError}}">{{steamIdError}}</text>
-    </view>
-  </view>
-
-  <button class="primary-button sheet-submit" loading="{{isSaving}}" disabled="{{isSaving}}" bindtap="saveProfile">
-    {{isSaving ? '保存中...' : '保存并继续'}}
-  </button>
-</view>
+<profile-sheet
+  visible="{{showProfileSheet}}"
+  mode="complete"
+  nickname="{{nickName}}"
+  steam-id="{{steamId}}"
+  steam-id-locked="{{steamIdLocked}}"
+  gender="{{gender}}"
+  avatar-url="{{avatarUrl}}"
+  male-avatar-url="{{maleAvatarUrl}}"
+  female-avatar-url="{{femaleAvatarUrl}}"
+  nickname-error="{{nickNameError}}"
+  steam-id-error="{{steamIdError}}"
+  gender-error="{{genderError}}"
+  is-uploading="{{isUploadingAvatar}}"
+  is-saving="{{isSaving}}"
+  bindclose="closeProfileSheet"
+  bindchooseavatar="chooseAvatar"
+  bindselectgender="selectGender"
+  bindnicknameinput="handleNickNameInput"
+  bindsteamidinput="handleSteamIdInput"
+  bindsave="saveProfile"
+/>
 
 
 <view class="sheet-mask" wx:if="{{showCreateSheet}}" bindtap="closeCreateSheet"></view>
@@ -211,23 +166,23 @@
 
       <view class="field" wx:if="{{createScheduleType === 'once'}}">
         <text class="label">指定日期</text>
-        <picker-field mode="date" value="{{createDate}}" start="{{todayDate}}" placeholder="选择日期" bindchange="handleCreateDateChange"></picker-field>
+        <picker-field mode="date" theme="light" value="{{createDate}}" start="{{todayDate}}" placeholder="选择日期" bindchange="handleCreateDateChange"></picker-field>
         <text class="error" wx:if="{{createDateError}}">{{createDateError}}</text>
       </view>
 
       <view class="field" wx:elif="{{createScheduleType === 'range'}}">
         <text class="label">日期范围</text>
         <view class="range-row">
-          <picker-field class="range-input" mode="date" value="{{createStartDate}}" start="{{todayDate}}" placeholder="开始" bindchange="handleCreateStartDateChange"></picker-field>
+          <picker-field class="range-input" mode="date" theme="light" value="{{createStartDate}}" start="{{todayDate}}" placeholder="开始" bindchange="handleCreateStartDateChange"></picker-field>
           <text class="range-separator">至</text>
-          <picker-field class="range-input" mode="date" value="{{createEndDate}}" start="{{createStartDate || todayDate}}" placeholder="结束" bindchange="handleCreateEndDateChange"></picker-field>
+          <picker-field class="range-input" mode="date" theme="light" value="{{createEndDate}}" start="{{createStartDate || todayDate}}" placeholder="结束" bindchange="handleCreateEndDateChange"></picker-field>
         </view>
         <text class="error" wx:if="{{createDateError}}">{{createDateError}}</text>
       </view>
 
       <view class="field">
         <text class="label">固定时间</text>
-        <picker-field mode="time" value="{{createTime}}" start="{{minCreateTime}}" placeholder="选择时间" bindchange="handleCreateTimeChange"></picker-field>
+        <picker-field mode="time" theme="light" value="{{createTime}}" start="{{minCreateTime}}" placeholder="选择时间" bindchange="handleCreateTimeChange"></picker-field>
         <text class="error" wx:if="{{createTimeError}}">{{createTimeError}}</text>
       </view>
 
