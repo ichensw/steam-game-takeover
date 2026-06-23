@@ -1327,6 +1327,7 @@ button::after {
 
 .credit-badge {
   flex-shrink: 0;
+  transform: translateY(-4rpx);
   min-width: 48rpx;
   height: 34rpx;
   padding: 0 10rpx;
