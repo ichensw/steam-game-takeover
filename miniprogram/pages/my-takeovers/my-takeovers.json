@@ -1,7 +1,6 @@
 {
   "usingComponents": {
-    "picker-field": "/components/picker-field/picker-field",
     "takeover-card": "/components/takeover-card/takeover-card"
   },
-  "enablePullDownRefresh": false
+  "navigationStyle": "custom"
 }

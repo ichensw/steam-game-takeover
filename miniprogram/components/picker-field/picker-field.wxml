@@ -1,0 +1,5 @@
+<picker mode="{{mode}}" value="{{value}}" start="{{start}}" end="{{end}}" bindchange="handleChange">
+  <view class="picker-field {{value ? '' : 'picker-field-placeholder'}}">
+    <text class="picker-field-text">{{value || placeholder}}</text>
+  </view>
+</picker>

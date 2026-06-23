@@ -1,4 +1,6 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "picker-field": "/components/picker-field/picker-field"
+  },
   "navigationStyle": "custom"
 }

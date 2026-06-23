@@ -27,6 +27,8 @@ type UserProfile = {
   avatarUrl: string
   gender: Gender
   isAdmin?: boolean
+  creditScore?: number
+  creditStatus?: string
 }
 
 type Participant = UserProfile
@@ -67,8 +69,16 @@ type ApiRequestOptions = {
   tokenType?: 'user' | 'none'
 }
 
+type UploadResult = {
+  url?: string
+  objectKey?: string
+}
+
+type UploadResponse = ApiResponse<UploadResult> | UploadResult
+
 const TOKEN_KEY = 'steam_takeover_token'
 const PROFILE_KEY = 'steam_takeover_user'
+const HOME_REFRESH_KEY = 'steam_takeover_home_needs_refresh'
 const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
@@ -80,11 +90,81 @@ const CARD_COVERS = [
 const CARD_CATEGORIES = ['王者荣耀', '和平精英', '英雄联盟', 'Steam同好', '派对游戏']
 const STATUS_COVERS: Record<string, string> = {
   招募中: '/assets/takeover-card-recruiting.png',
-  已满员: '/assets/takeover-card-pending.png',
-  已结束: '/assets/takeover-card-full.png',
+  已满员: '/assets/takeover-card-full.png',
+  已结束: '/assets/takeover-card-pending.png',
 }
 
+const getCreditScore = (raw: Record<string, any> | null | undefined) =>
+  Number(raw?.creditScore ?? raw?.credit_score ?? 100)
+const getCreditStatus = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
+const canJoinWithCredit = (score?: number) => score === undefined || score >= 70
+
 const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
+
+const parseUploadResponse = (value: string) => {
+  try {
+    return JSON.parse(value) as UploadResponse
+  } catch {
+    return null
+  }
+}
+
+const uploadImage = (filePath: string) => {
+  return new Promise<string>((resolve, reject) => {
+    const token = getUserToken()
+    if (!token) {
+      reject(new Error('请先登录'))
+      return
+    }
+
+    wx.uploadFile({
+      url: `${API_BASE_URL}/api/uploads/image`,
+      filePath,
+      name: 'file',
+      header: {
+        Authorization: `Bearer ${token}`,
+      },
+      success: response => {
+        const body = parseUploadResponse(response.data)
+        const uploadError =
+          body && isApiResponse<UploadResult>(body) ? body.message || body.code : ''
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          reject(new Error(uploadError || `上传失败：${response.statusCode}`))
+          return
+        }
+
+        const data = body && isApiResponse<UploadResult>(body) ? body.data : body
+        if (!data || !data.url) {
+          reject(new Error('上传结果异常'))
+          return
+        }
+
+        resolve(data.url)
+      },
+      fail: error => {
+        reject(new Error(error.errMsg || '图片上传失败'))
+      },
+    })
+  })
+}
+
+const refreshPreviousHome = (page: WechatMiniprogram.Page.Instance<WechatMiniprogram.IAnyObject, WechatMiniprogram.IAnyObject>) => {
+  const eventChannel = page.getOpenerEventChannel()
+  if (eventChannel && typeof eventChannel.emit === 'function') {
+    eventChannel.emit('takeoverChanged')
+  }
+
+  wx.setStorageSync(HOME_REFRESH_KEY, Date.now())
+  const pages = getCurrentPages()
+  const previousPage = pages[pages.length - 2] as unknown as {
+    loadTakeoversFromServer?: (page: number, replace: boolean) => void
+  }
+
+  if (previousPage && typeof previousPage.loadTakeoversFromServer === 'function') {
+    previousPage.loadTakeoversFromServer(1, true)
+    wx.removeStorageSync(HOME_REFRESH_KEY)
+  }
+}
 
 const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
   !!value && typeof value === 'object' && 'success' in value
@@ -159,6 +239,7 @@ const normalizeGender = (gender: unknown): Gender | '' => {
 
 const normalizeParticipant = (rawParticipant: Record<string, any>): Participant => {
   const gender = normalizeGender(rawParticipant.gender) || 'female'
+  const creditScore = getCreditScore(rawParticipant)
 
   return {
     userId: rawParticipant.userId ? String(rawParticipant.userId) : rawParticipant.id ? String(rawParticipant.id) : undefined,
@@ -167,6 +248,8 @@ const normalizeParticipant = (rawParticipant: Record<string, any>): Participant 
     steamId: rawParticipant.steamId || rawParticipant.steam_id || '',
     gender,
     avatarUrl: rawParticipant.avatarUrl || rawParticipant.avatar_url || getGenderAvatar(gender),
+    creditScore,
+    creditStatus: rawParticipant.creditStatus || rawParticipant.credit_status || getCreditStatus(creditScore),
   }
 }
 
@@ -178,6 +261,7 @@ const normalizeUserProfile = (rawProfile: Record<string, any> | null | undefined
   const gender = normalizeGender(rawProfile.gender)
   const nickName = rawProfile.nickName || rawProfile.nickname || ''
   const steamId = rawProfile.steamId || rawProfile.steam_id || ''
+  const creditScore = getCreditScore(rawProfile)
 
   if (!nickName || !steamId || !gender) {
     return null
@@ -191,6 +275,8 @@ const normalizeUserProfile = (rawProfile: Record<string, any> | null | undefined
     gender,
     avatarUrl: rawProfile.avatarUrl || rawProfile.avatar_url || getGenderAvatar(gender),
     isAdmin: !!(rawProfile.isAdmin || rawProfile.is_admin),
+    creditScore,
+    creditStatus: rawProfile.creditStatus || rawProfile.credit_status || getCreditStatus(creditScore),
   }
 }
 
@@ -362,7 +448,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
       joined >= limit && limit > 0 ? '满员' : '开黑',
     ],
     statusLabel,
-    statusTone: statusLabel === '已满员' ? 'purple' : statusLabel === '已结束' ? 'ended' : 'orange',
+    statusTone: statusLabel === '已结束' ? 'ended' : statusLabel === '已满员' ? 'purple' : 'orange',
     coverImage: rawTakeover.coverImage || rawTakeover.cover_image || STATUS_COVERS[statusLabel] || CARD_COVERS[numericId % CARD_COVERS.length],
   }
 }
@@ -384,6 +470,8 @@ const getStoredProfile = (): UserProfile | null => {
       gender: userProfile.gender,
       avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
       isAdmin: !!userProfile.isAdmin,
+      creditScore: Number(userProfile.creditScore ?? 100),
+      creditStatus: userProfile.creditStatus || getCreditStatus(Number(userProfile.creditScore ?? 100)),
     }
   }
 
@@ -414,6 +502,13 @@ Page({
     editTime: '',
     editDescription: '',
     todayDate: formatDateForInput(new Date()),
+    showReportSheet: false,
+    reportUserId: '',
+    reportNickname: '',
+    reportContent: '',
+    reportImageUrl: '',
+    isUploadingReportImage: false,
+    isSubmittingReport: false,
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -455,6 +550,10 @@ Page({
     if (!this.data.canManage || !takeover) {
       return
     }
+    if (takeover.statusLabel === '已结束') {
+      wx.showToast({ title: '已结束的接龙不可编辑', icon: 'none' })
+      return
+    }
 
     this.setData({
       showEditSheet: true,
@@ -492,11 +591,11 @@ Page({
     }
   },
 
-  handleEditDateChange(event: WechatMiniprogram.PickerChange) {
+  handleEditDateChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
     this.setData({ editDate: event.detail.value as string })
   },
 
-  handleEditStartDateChange(event: WechatMiniprogram.PickerChange) {
+  handleEditStartDateChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
     const startDate = event.detail.value as string
     const endDate = this.data.editEndDate
     this.setData({
@@ -505,7 +604,7 @@ Page({
     })
   },
 
-  handleEditEndDateChange(event: WechatMiniprogram.PickerChange) {
+  handleEditEndDateChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
     const endDate = event.detail.value as string
     const startDate = this.data.editStartDate
     this.setData({
@@ -514,7 +613,7 @@ Page({
     })
   },
 
-  handleEditTimeChange(event: WechatMiniprogram.PickerChange) {
+  handleEditTimeChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
     this.setData({ editTime: event.detail.value as string })
   },
 
@@ -543,6 +642,10 @@ Page({
   saveAdminEdit() {
     const takeover = this.data.takeover
     if (!this.data.canManage || !takeover || this.data.isSavingAdmin) return
+    if (takeover.statusLabel === '已结束') {
+      wx.showToast({ title: '已结束的接龙不可编辑', icon: 'none' })
+      return
+    }
 
     const title = this.data.editTitle.trim()
     const description = this.data.editDescription.trim()
@@ -582,6 +685,10 @@ Page({
   deleteAdminTakeover() {
     const takeover = this.data.takeover
     if (!this.data.canManage || !takeover || this.data.isDeleting) return
+    if (takeover.statusLabel === '已结束') {
+      wx.showToast({ title: '已结束的接龙不可删除', icon: 'none' })
+      return
+    }
 
     wx.showModal({
       title: '删除接龙',
@@ -663,13 +770,9 @@ Page({
       return
     }
 
-    if (!getStoredProfile()) {
-      wx.showModal({
-        title: '请先补充资料',
-        content: '回到首页点击右下角头像，填写昵称和 SteamID 后再加入队伍。',
-        confirmText: '知道了',
-        showCancel: false,
-      })
+    const profile = getStoredProfile()
+    if (profile && !canJoinWithCredit(profile.creditScore)) {
+      wx.showToast({ title: '信誉分低于 70，暂无法参与接龙', icon: 'none' })
       return
     }
 
@@ -691,6 +794,7 @@ Page({
           })
         }
         wx.showToast({ title: '已加入', icon: 'success' })
+        refreshPreviousHome(this)
         this.loadTakeover()
       })
       .catch(error => {
@@ -734,6 +838,7 @@ Page({
               })
             }
             wx.showToast({ title: '已退出', icon: 'success' })
+            refreshPreviousHome(this)
             this.loadTakeover()
           })
           .catch(error => {
@@ -746,19 +851,97 @@ Page({
     })
   },
 
-  copySteamId(event: WechatMiniprogram.TouchEvent) {
-    const steamId = event.currentTarget.dataset.steamid as string
+  openReportSheet(event: WechatMiniprogram.TouchEvent) {
+    const userId = event.currentTarget.dataset.userid as string
+    const nickname = event.currentTarget.dataset.nickname as string
 
-    if (!steamId) {
+    if (!userId) {
       return
     }
 
-    wx.setClipboardData({
-      data: steamId,
-      success: () => {
-        wx.showToast({ title: '已复制 SteamID', icon: 'success' })
+    this.setData({
+      showReportSheet: true,
+      reportUserId: userId,
+      reportNickname: nickname || '玩家',
+      reportContent: '',
+      reportImageUrl: '',
+    })
+  },
+
+  closeReportSheet() {
+    if (this.data.isSubmittingReport || this.data.isUploadingReportImage) {
+      return
+    }
+    this.setData({ showReportSheet: false })
+  },
+
+  handleReportContentInput(event: WechatMiniprogram.Input) {
+    this.setData({ reportContent: event.detail.value })
+  },
+
+  chooseReportImage() {
+    if (this.data.isUploadingReportImage) {
+      return
+    }
+
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: result => {
+        const filePath = result.tempFiles[0]?.tempFilePath
+        if (!filePath) {
+          return
+        }
+
+        this.setData({ isUploadingReportImage: true })
+        uploadImage(filePath)
+          .then(url => {
+            this.setData({ reportImageUrl: url })
+            wx.showToast({ title: '截图已上传', icon: 'success' })
+          })
+          .catch(error => {
+            wx.showToast({ title: error.message || '上传失败', icon: 'none' })
+          })
+          .finally(() => {
+            this.setData({ isUploadingReportImage: false })
+          })
       },
     })
+  },
+
+  submitReport() {
+    const takeover = this.data.takeover
+    const content = this.data.reportContent.trim()
+
+    if (!takeover || !this.data.reportUserId || this.data.isSubmittingReport) {
+      return
+    }
+    if (!content) {
+      wx.showToast({ title: '请填写举报内容', icon: 'none' })
+      return
+    }
+
+    this.setData({ isSubmittingReport: true })
+    apiRequest<null>({
+      url: `/api/takeovers/${takeover.id}/reports`,
+      method: 'POST',
+      data: {
+        reportedUserId: Number(this.data.reportUserId),
+        content,
+        imageUrl: this.data.reportImageUrl,
+      },
+    })
+      .then(() => {
+        wx.showToast({ title: '已提交举报', icon: 'success' })
+        this.setData({ showReportSheet: false })
+      })
+      .catch(error => {
+        wx.showToast({ title: error.message || '提交失败', icon: 'none' })
+      })
+      .finally(() => {
+        this.setData({ isSubmittingReport: false })
+      })
   },
 
   goBack() {

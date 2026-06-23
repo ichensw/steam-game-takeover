@@ -48,76 +48,15 @@
       </view>
 
       <view class="range-filter-panel" wx:if="{{activeTimeFilter === 'range'}}">
-        <picker mode="date" value="{{rangeStartDate}}" start="{{todayDate}}" bindchange="handleRangeStartChange">
-          <view class="range-picker">
-            <text class="range-picker-label">开始</text>
-            <text class="range-picker-value">{{rangeStartDate || '选择日期'}}</text>
-          </view>
-        </picker>
-        <picker mode="date" value="{{rangeEndDate}}" start="{{rangeStartDate || todayDate}}" bindchange="handleRangeEndChange">
-          <view class="range-picker">
-            <text class="range-picker-label">结束</text>
-            <text class="range-picker-value">{{rangeEndDate || '选择日期'}}</text>
-          </view>
-        </picker>
+        <picker-field mode="date" value="{{rangeStartDate}}" start="{{todayDate}}" placeholder="开始" bindchange="handleRangeStartChange"></picker-field>
+        <picker-field mode="date" value="{{rangeEndDate}}" start="{{rangeStartDate || todayDate}}" placeholder="结束" bindchange="handleRangeEndChange"></picker-field>
         <view class="range-clear" wx:if="{{rangeStartDate || rangeEndDate}}" bindtap="clearRangeFilter">清空日期</view>
       </view>
     </view>
 
     <view class="takeover-list">
-      <view class="takeover-card takeover-card-{{item.statusTone}}" wx:for="{{takeoverList}}" wx:key="id" data-id="{{item.id}}" bindtap="viewTakeover">
-        <image class="card-cover" src="{{item.coverImage}}" mode="aspectFit"></image>
-        <view class="card-ambient"></view>
-        <view class="card-sparkle card-sparkle-one">✦</view>
-        <view class="card-sparkle card-sparkle-two">♡</view>
-        <view class="game-badge">
-          <text class="game-icon">🎮</text>
-          <text>{{item.categoryLabel}}</text>
-        </view>
-        <view class="status-badge status-{{item.statusTone}}">{{item.statusLabel}}</view>
-        <view class="card-head">
-          <text class="card-title">{{item.title}}</text>
-        </view>
-
-        <view class="card-note">
-          <text class="note-text">{{item.description}}</text>
-        </view>
-
-        <view class="card-meta-list">
-          <view class="card-meta-row">
-            <view class="meta-icon">
-              <image class="meta-icon-image" src="/assets/icon-time.svg" mode="aspectFit"></image>
-            </view>
-            <text class="meta-value">{{item.scheduleText}}</text>
-          </view>
-          <view class="card-meta-row">
-            <view class="meta-icon">
-              <image class="meta-icon-image" src="/assets/icon-host.svg" mode="aspectFit"></image>
-            </view>
-            <text class="meta-value">{{item.host || '兔兔窝'}}</text>
-          </view>
-          <view class="card-meta-row">
-            <view class="meta-icon">
-              <image class="meta-icon-image" src="/assets/icon-members.svg" mode="aspectFit"></image>
-            </view>
-            <text class="meta-value">{{item.joined}} / {{item.limit}}</text>
-          </view>
-        </view>
-
-        <view class="card-foot">
-          <view class="member-side">
-            <view class="avatar-stack">
-              <image
-                class="member-avatar"
-                wx:for="{{item.participantAvatars}}"
-                wx:for-item="avatar"
-                wx:key="*this"
-                src="{{avatar}}"
-                mode="aspectFill"
-              ></image>
-            </view>
-          </view>
-        </view>
+      <view class="takeover-card-wrap" wx:for="{{takeoverList}}" wx:key="id">
+        <takeover-card takeover="{{item}}" bindtapcard="viewTakeover"></takeover-card>
       </view>
     </view>
 
@@ -138,13 +77,17 @@
   </view>
 </scroll-view>
 
-<button class="create-dock" bindtap="createTakeover">
+<button class="create-dock" wx:if="{{publishTakeoverEnabled}}" bindtap="createTakeover">
   <text class="create-dock-plus">＋</text>
   <text>发起接龙</text>
 </button>
 
-<view class="profile-float" bindtap="openProfileEditor">
+<view class="profile-float" bindtap="openProfilePage">
   <image class="profile-float-avatar" src="{{avatarUrl || femaleAvatarUrl}}" mode="aspectFill"></image>
+  <view class="credit-float credit-{{creditStatus}}">
+    <text class="credit-float-label">信誉</text>
+    <text class="credit-float-value">{{creditScore}}</text>
+  </view>
 </view>
 
 <view class="global-loading" wx:if="{{isAuthorizing}}">
@@ -209,8 +152,10 @@
         value="{{steamId}}"
         placeholder="输入 SteamID"
         placeholder-class="placeholder"
+        disabled="{{steamIdLocked}}"
         bindinput="handleSteamIdInput"
       />
+      <text class="field-warning">重要：SteamID 保存后不可自行修改，请确认无误；如填写错误，只能联系管理员处理</text>
       <text class="error" wx:if="{{steamIdError}}">{{steamIdError}}</text>
     </view>
   </view>
@@ -219,6 +164,7 @@
     {{isSaving ? '保存中...' : '保存并继续'}}
   </button>
 </view>
+
 
 <view class="sheet-mask" wx:if="{{showCreateSheet}}" bindtap="closeCreateSheet"></view>
 <view class="profile-sheet create-sheet" wx:if="{{showCreateSheet}}">
@@ -266,31 +212,23 @@
 
       <view class="field" wx:if="{{createScheduleType === 'once'}}">
         <text class="label">指定日期</text>
-        <picker mode="date" value="{{createDate}}" start="{{todayDate}}" bindchange="handleCreateDateChange">
-          <view class="input picker-input {{createDate ? '' : 'picker-placeholder'}}">{{createDate || '选择日期'}}</view>
-        </picker>
+        <picker-field mode="date" value="{{createDate}}" start="{{todayDate}}" placeholder="选择日期" bindchange="handleCreateDateChange"></picker-field>
         <text class="error" wx:if="{{createDateError}}">{{createDateError}}</text>
       </view>
 
       <view class="field" wx:elif="{{createScheduleType === 'range'}}">
         <text class="label">日期范围</text>
         <view class="range-row">
-          <picker class="range-input" mode="date" value="{{createStartDate}}" start="{{todayDate}}" bindchange="handleCreateStartDateChange">
-            <view class="input range-input-inner {{createStartDate ? '' : 'picker-placeholder'}}">{{createStartDate || '开始'}}</view>
-          </picker>
+          <picker-field class="range-input" mode="date" value="{{createStartDate}}" start="{{todayDate}}" placeholder="开始" bindchange="handleCreateStartDateChange"></picker-field>
           <text class="range-separator">至</text>
-          <picker class="range-input" mode="date" value="{{createEndDate}}" start="{{createStartDate || todayDate}}" bindchange="handleCreateEndDateChange">
-            <view class="input range-input-inner {{createEndDate ? '' : 'picker-placeholder'}}">{{createEndDate || '结束'}}</view>
-          </picker>
+          <picker-field class="range-input" mode="date" value="{{createEndDate}}" start="{{createStartDate || todayDate}}" placeholder="结束" bindchange="handleCreateEndDateChange"></picker-field>
         </view>
         <text class="error" wx:if="{{createDateError}}">{{createDateError}}</text>
       </view>
 
       <view class="field">
         <text class="label">固定时间</text>
-        <picker mode="time" value="{{createTime}}" start="{{minCreateTime}}" bindchange="handleCreateTimeChange">
-          <view class="input picker-input {{createTime ? '' : 'picker-placeholder'}}">{{createTime || '选择时间'}}</view>
-        </picker>
+        <picker-field mode="time" value="{{createTime}}" start="{{minCreateTime}}" placeholder="选择时间" bindchange="handleCreateTimeChange"></picker-field>
         <text class="error" wx:if="{{createTimeError}}">{{createTimeError}}</text>
       </view>
 
@@ -338,7 +276,10 @@
       <view class="member-row {{!isAdmin ? 'member-row-user' : ''}}" wx:for="{{currentTakeover.participants}}" wx:key="steamId">
         <image class="detail-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
         <view class="member-info">
-          <text class="member-name">{{item.nickName}}</text>
+          <view class="member-name-line">
+            <text class="member-name">{{item.nickName}}</text>
+            <text class="credit-badge credit-{{item.creditStatus}}">信誉 {{item.creditScore}}</text>
+          </view>
           <view class="member-steam-line">
             <text class="member-steam">SteamID：{{item.steamId}}</text>
             <button class="copy-button" wx:if="{{!isAdmin}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>

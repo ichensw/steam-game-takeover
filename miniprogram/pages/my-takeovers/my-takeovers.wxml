@@ -1,0 +1,47 @@
+<scroll-view
+  class="page"
+  scroll-y
+  refresher-enabled
+  refresher-triggered="{{isRefreshing}}"
+  lower-threshold="100"
+  bindrefresherrefresh="refresh"
+  bindscrolltolower="loadMore"
+>
+  <image class="bg" src="{{backgroundUrl}}" mode="aspectFill"></image>
+  <view class="shade"></view>
+
+  <view class="shell">
+    <view class="nav">
+      <view class="back-button" bindtap="goBack">‹</view>
+      <text class="title">我的接龙</text>
+    </view>
+
+    <view class="search-box">
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="搜索标题 / 内容 / 接龙人"
+        placeholder-class="placeholder"
+        bindinput="handleSearchInput"
+      />
+      <text class="search-icon" wx:if="{{!keyword}}">⌕</text>
+      <view class="search-clear" wx:else bindtap="clearSearch">
+        <view class="search-clear-line search-clear-line-a"></view>
+        <view class="search-clear-line search-clear-line-b"></view>
+      </view>
+    </view>
+
+    <view class="takeover-card-wrap" wx:for="{{list}}" wx:key="id">
+      <takeover-card takeover="{{item}}" bindtapcard="openTakeover"></takeover-card>
+    </view>
+
+    <view class="empty-card" wx:if="{{!list.length && !isLoading}}">
+      <text>没有找到接龙</text>
+    </view>
+
+    <view class="footer" wx:if="{{list.length}}">
+      <text wx:if="{{isLoadingMore}}">加载中...</text>
+      <text wx:elif="{{!hasMore}}">已经到底啦</text>
+    </view>
+  </view>
+</scroll-view>

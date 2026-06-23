@@ -162,7 +162,11 @@ button::after {
 }
 
 .status-purple {
-  background: #a77bff;
+  background: #ef4444;
+}
+
+.status-ended {
+  background: #8b7a9f;
 }
 
 .status-ended {
@@ -625,7 +629,8 @@ button::after {
   box-shadow: none;
 }
 
-.copy-button {
+.copy-button,
+.report-button {
   width: 96rpx;
   min-width: 96rpx;
   height: 52rpx;
@@ -637,6 +642,11 @@ button::after {
   line-height: 52rpx;
   text-align: center;
   box-shadow: 0 8rpx 18rpx rgba(140, 92, 255, 0.2);
+}
+
+.report-button {
+  background: linear-gradient(135deg, #ff5f8f 0%, #ef4444 100%);
+  box-shadow: 0 8rpx 18rpx rgba(239, 68, 68, 0.22);
 }
 
 .member-steam {
@@ -658,7 +668,40 @@ button::after {
   min-width: 0;
 }
 
-.copy-button {
+.member-name-line {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.credit-badge {
+  flex-shrink: 0;
+  min-width: 88rpx;
+  height: 32rpx;
+  padding: 0 12rpx;
+  border-radius: 999rpx;
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+  font-size: 19rpx;
+  line-height: 32rpx;
+  font-weight: 800;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.credit-badge.credit-limited {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.credit-badge.credit-disabled {
+  background: rgba(127, 29, 29, 0.12);
+  color: #991b1b;
+}
+
+.copy-button,
+.report-button {
   flex: 0 0 108rpx;
   width: 108rpx;
   min-width: 108rpx;
@@ -728,6 +771,10 @@ button::after {
 
 .edit-sheet {
   max-height: 88vh;
+}
+
+.report-sheet {
+  max-height: 82vh;
 }
 
 .sheet-handle {
@@ -831,6 +878,46 @@ button::after {
   font-weight: 800;
 }
 
+.report-title-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.report-target {
+  max-width: 540rpx;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 23rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-textarea {
+  height: 210rpx;
+}
+
+.report-image-button {
+  width: 100%;
+  height: 72rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 25rpx;
+  line-height: 72rpx;
+  font-weight: 800;
+}
+
+.report-preview {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .schedule-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -865,6 +952,18 @@ button::after {
 .range-input {
   min-width: 0;
   flex: 1;
+}
+
+.edit-field .picker-field {
+  height: 72rpx;
+  min-height: 72rpx;
+  padding: 0 22rpx;
+  font-size: 25rpx;
+  line-height: 72rpx;
+}
+
+.edit-field .picker-field-text {
+  line-height: 72rpx;
 }
 
 .range-separator {

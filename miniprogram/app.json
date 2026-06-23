@@ -1,6 +1,8 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/profile/profile",
+    "pages/my-takeovers/my-takeovers",
     "pages/detail/detail",
     "pages/logs/logs"
   ],

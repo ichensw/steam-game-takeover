@@ -1,0 +1,65 @@
+<scroll-view class="profile-page" scroll-y>
+  <image class="profile-bg" src="{{backgroundUrl}}" mode="aspectFill"></image>
+  <view class="profile-shade"></view>
+
+  <view class="profile-shell">
+    <view class="profile-nav">
+      <view class="back-button" bindtap="goBack">‹</view>
+    </view>
+
+    <view class="hero">
+      <view class="avatar-ring">
+        <image class="avatar" src="{{user.avatarUrl || femaleAvatarUrl}}" mode="aspectFill"></image>
+      </view>
+      <view class="hero-copy">
+        <text class="nickname">{{user.nickname || '兔兔玩家'}}</text>
+        <view class="steam-row">
+          <text>ID：{{user.steamId || '未填写'}}</text>
+          <view class="copy-mini" wx:if="{{user.steamId}}" bindtap="copySteamId">复制</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="stats-panel">
+      <view class="stat-item">
+        <view class="stat-icon stat-pink">🎮</view>
+        <text class="stat-value">{{createdCount}}</text>
+        <text class="stat-label">发起接龙</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <view class="stat-icon stat-purple">🎯</view>
+        <text class="stat-value">{{joinedCount}}</text>
+        <text class="stat-label">参与接龙</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item credit-stat credit-{{user.creditStatus}}">
+        <view class="stat-icon stat-credit">信</view>
+        <text class="stat-value">{{user.creditScore}}</text>
+        <text class="stat-label">信誉分</text>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-head" bindtap="openMyTakeovers">
+        <text class="section-title">我的接龙</text>
+        <text class="section-more">全部 ›</text>
+      </view>
+
+      <view class="takeover-card-wrap" wx:for="{{recent}}" wx:key="id">
+        <takeover-card takeover="{{item}}" bindtapcard="openTakeover"></takeover-card>
+      </view>
+
+      <view class="empty-card" wx:if="{{!recent.length && !isLoading}}">
+        <text>还没有接龙记录</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="global-loading" wx:if="{{isLoading}}">
+    <view class="loading-card">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中</text>
+    </view>
+  </view>
+</scroll-view>

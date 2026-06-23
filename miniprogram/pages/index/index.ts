@@ -31,6 +31,8 @@ type UserProfile = {
   avatarUrl: string
   gender: Gender
   isAdmin?: boolean
+  creditScore?: number
+  creditStatus?: string
 }
 
 type Participant = UserProfile
@@ -48,6 +50,8 @@ type Takeover = {
   participantAvatars: string[]
   participants: Participant[]
   hasJoined: boolean
+  creatorCreditScore?: number
+  creatorCreditStatus?: string
   categoryLabel: string
   cardTags: string[]
   statusLabel: string
@@ -60,6 +64,7 @@ const PAGE_SIZE = 5
 const PROFILE_KEY = 'steam_takeover_user'
 const TOKEN_KEY = 'steam_takeover_token'
 const ADMIN_TOKEN_KEY = 'steam_takeover_admin_token'
+const HOME_REFRESH_KEY = 'steam_takeover_home_needs_refresh'
 const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
@@ -72,9 +77,15 @@ const CARD_COVERS = [
 const CARD_CATEGORIES = ['王者荣耀', '和平精英', '英雄联盟', 'Steam同好', '派对游戏']
 const STATUS_COVERS: Record<string, string> = {
   招募中: '/assets/takeover-card-recruiting.png',
-  已满员: '/assets/takeover-card-pending.png',
-  已结束: '/assets/takeover-card-full.png',
+  已满员: '/assets/takeover-card-full.png',
+  已结束: '/assets/takeover-card-pending.png',
 }
+
+const getCreditScore = (raw: Record<string, any> | null | undefined) =>
+  Number(raw?.creditScore ?? raw?.credit_score ?? 100)
+const getCreditStatus = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
+const canCreateWithCredit = (score?: number) => score === undefined || score >= 51
+const canJoinWithCredit = (score?: number) => score === undefined || score >= 70
 
 let lastCreateSubmitAt = 0
 
@@ -98,6 +109,7 @@ type LoginResult = {
   profileCompleted?: boolean
   blocked?: boolean
   isBlocked?: boolean
+  publishTakeoverEnabled?: boolean
 }
 
 type UploadResult = {
@@ -263,6 +275,7 @@ const normalizeUserProfile = (rawUser: Record<string, any> | null | undefined): 
   const gender = normalizeGender(rawUser.gender)
   const nickName = rawUser.nickName || rawUser.nickname || rawUser.nick_name || ''
   const steamId = rawUser.steamId || rawUser.steam_id || ''
+  const creditScore = getCreditScore(rawUser)
 
   if (!nickName || !steamId || !gender) {
     return null
@@ -276,6 +289,8 @@ const normalizeUserProfile = (rawUser: Record<string, any> | null | undefined): 
     gender,
     avatarUrl: rawUser.avatarUrl || rawUser.avatar_url || getGenderAvatar(gender),
     isAdmin: !!(rawUser.isAdmin || rawUser.is_admin),
+    creditScore,
+    creditStatus: rawUser.creditStatus || rawUser.credit_status || getCreditStatus(creditScore),
   }
 }
 
@@ -287,6 +302,7 @@ const normalizeParticipant = (rawParticipant: Record<string, any>): Participant 
   }
 
   const gender = normalizeGender(rawParticipant.gender) || 'female'
+  const creditScore = getCreditScore(rawParticipant)
   return {
     userId: rawParticipant.userId ? String(rawParticipant.userId) : rawParticipant.id ? String(rawParticipant.id) : undefined,
     openid: rawParticipant.openid ? String(rawParticipant.openid) : undefined,
@@ -294,6 +310,8 @@ const normalizeParticipant = (rawParticipant: Record<string, any>): Participant 
     steamId: rawParticipant.steamId || rawParticipant.steam_id || '',
     gender,
     avatarUrl: rawParticipant.avatarUrl || rawParticipant.avatar_url || getGenderAvatar(gender),
+    creditScore,
+    creditStatus: rawParticipant.creditStatus || rawParticipant.credit_status || getCreditStatus(creditScore),
   }
 }
 
@@ -326,6 +344,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     : []
   const joined = Number(rawTakeover.joinedCount || rawTakeover.joined_count || rawTakeover.joined || participants.length || 0)
   const limit = Number(rawTakeover.participantLimit || rawTakeover.participant_limit || rawTakeover.limit || 0)
+  const creatorCreditScore = Number(rawTakeover.creatorCreditScore ?? rawTakeover.creator_credit_score ?? 100)
   const schedule: Schedule =
     scheduleType === 'daily'
       ? { type: 'daily', time: playTime }
@@ -355,6 +374,8 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 5),
     participants,
     hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
+    creatorCreditScore,
+    creatorCreditStatus: rawTakeover.creatorCreditStatus || rawTakeover.creator_credit_status || getCreditStatus(creatorCreditScore),
     ...buildTakeoverDisplayFields(String(rawTakeover.id), joined, limit, scheduleType, rawTakeover),
   }
 }
@@ -529,7 +550,7 @@ const buildTakeoverDisplayFields = (
   const numericId = getDisplaySeed(id)
   const statusLabel = rawTakeover.statusLabel || rawTakeover.status_label || (joined >= limit && limit > 0 ? '已满员' : '招募中')
 
-  const statusTone = statusLabel === '已满员' ? 'purple' : statusLabel === '已结束' ? 'ended' : 'orange'
+  const statusTone = statusLabel === '已结束' ? 'ended' : statusLabel === '已满员' ? 'purple' : 'orange'
 
   return {
     categoryLabel: rawTakeover.categoryLabel || rawTakeover.category_label || rawTakeover.gameName || rawTakeover.game_name || CARD_CATEGORIES[numericId % CARD_CATEGORIES.length],
@@ -847,13 +868,15 @@ const getStoredProfile = (): UserProfile | null => {
     userProfile.nickName &&
     userProfile.steamId
   ) {
-    return {
-      nickName: userProfile.nickName,
-      steamId: userProfile.steamId,
-      gender: userProfile.gender,
-      avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
-      isAdmin: !!userProfile.isAdmin,
-    }
+      return {
+        nickName: userProfile.nickName,
+        steamId: userProfile.steamId,
+        gender: userProfile.gender,
+        avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
+        isAdmin: !!userProfile.isAdmin,
+        creditScore: Number(userProfile.creditScore ?? 100),
+        creditStatus: userProfile.creditStatus || getCreditStatus(Number(userProfile.creditScore ?? 100)),
+      }
   }
 
   return null
@@ -900,11 +923,11 @@ Component({
     isUploadingAvatar: false,
     isBlocked: false,
     blockedMessage: '',
+    publishTakeoverEnabled: false,
     isAdmin: false,
     showProfileSheet: false,
     showCreateSheet: false,
     showDetailSheet: false,
-    showAdminSheet: false,
     showCardMenuSheet: false,
     currentTakeover: null as Takeover | null,
     detailJoinStatusText: '未加入',
@@ -912,13 +935,14 @@ Component({
     managingTakeover: null as Takeover | null,
     pendingAction: '' as PendingAction | '',
     pendingTakeoverId: '',
-    adminPassword: '',
-    adminPasswordError: '',
     blacklistedSteamIds: [] as string[],
     nickName: '',
     steamId: '',
+    steamIdLocked: false,
     gender: '' as Gender | '',
     avatarUrl: '',
+    creditScore: 100,
+    creditStatus: 'normal',
     nickNameError: '',
     steamIdError: '',
     genderError: '',
@@ -951,12 +975,25 @@ Component({
         this.setData({
           nickName: userProfile.nickName,
           steamId: userProfile.steamId,
+          steamIdLocked: !!userProfile.steamId,
           gender: userProfile.gender,
           avatarUrl: userProfile.avatarUrl,
         })
       }
 
       this.bootstrap()
+    },
+  },
+
+  pageLifetimes: {
+    show() {
+      const needsRefresh = wx.getStorageSync(HOME_REFRESH_KEY)
+      if (!needsRefresh || !getUserToken() || this.data.isAuthorizing || this.data.isBlocked) {
+        return
+      }
+
+      wx.removeStorageSync(HOME_REFRESH_KEY)
+      this.loadTakeoversFromServer(1, true)
     },
   },
 
@@ -981,6 +1018,8 @@ Component({
                 wx.setStorageSync(TOKEN_KEY, result.token)
               }
 
+              this.setData({ publishTakeoverEnabled: result.publishTakeoverEnabled === true })
+
               const normalizedProfile = normalizeUserProfile(result.user)
               if (normalizedProfile) {
                 wx.setStorageSync(PROFILE_KEY, normalizedProfile)
@@ -988,8 +1027,11 @@ Component({
                 this.setData({
                   nickName: normalizedProfile.nickName,
                   steamId: normalizedProfile.steamId,
+                  steamIdLocked: !!normalizedProfile.steamId,
                   gender: normalizedProfile.gender,
                   avatarUrl: normalizedProfile.avatarUrl,
+                  creditScore: normalizedProfile.creditScore ?? 100,
+                  creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore ?? 100),
                 })
               }
 
@@ -1023,15 +1065,18 @@ Component({
       })
     },
 
-    viewTakeover(event: WechatMiniprogram.TouchEvent) {
-      const takeoverId = event.currentTarget.dataset.id as string
+    viewTakeover(event: WechatMiniprogram.TouchEvent & { detail?: { id?: string } }) {
+      const takeoverId = (event.detail?.id || event.currentTarget.dataset.id) as string
       if (!takeoverId) {
         return
       }
 
-      wx.navigateTo({
-        url: `/pages/detail/detail?id=${encodeURIComponent(takeoverId)}`,
-      })
+      if (!getStoredProfile()) {
+        this.ensureProfile('view', takeoverId)
+        return
+      }
+
+      this.navigateToDetail(takeoverId)
     },
 
     handleTakeoverAction(event: WechatMiniprogram.TouchEvent) {
@@ -1040,82 +1085,21 @@ Component({
         return
       }
 
-      wx.navigateTo({
-        url: `/pages/detail/detail?id=${encodeURIComponent(takeoverId)}`,
-      })
+      if (!getStoredProfile()) {
+        this.ensureProfile('view', takeoverId)
+        return
+      }
+
+      this.navigateToDetail(takeoverId)
     },
 
     createTakeover() {
+      if (!this.data.publishTakeoverEnabled) {
+        wx.showToast({ title: '暂未开放发起接龙', icon: 'none' })
+        return
+      }
+
       this.ensureProfile('create', '')
-    },
-
-    openAdminSheet() {
-      if (this.data.isAdmin) {
-        this.setData({ isAdmin: false })
-        wx.removeStorageSync(ADMIN_TOKEN_KEY)
-        wx.showToast({ title: '已退出管理', icon: 'success' })
-        return
-      }
-
-      this.setData({
-        showAdminSheet: true,
-        adminPassword: '',
-        adminPasswordError: '',
-      })
-    },
-
-    closeAdminSheet() {
-      this.setData({
-        showAdminSheet: false,
-        adminPassword: '',
-        adminPasswordError: '',
-      })
-    },
-
-    handleAdminPasswordInput(event: WechatMiniprogram.Input) {
-      this.setData({
-        adminPassword: event.detail.value.trim(),
-        adminPasswordError: '',
-      })
-    },
-
-    verifyAdminPassword() {
-      const password = this.data.adminPassword
-
-      if (!password) {
-        this.setData({ adminPasswordError: '请输入管理员密码' })
-        return
-      }
-
-      this.setData({ isAuthorizing: true })
-      apiRequest<{ adminToken?: string; token?: string }>({
-        url: '/api/admin/login',
-        method: 'POST',
-        data: { password },
-        tokenType: 'none',
-      })
-        .then(result => {
-          const adminToken = result.adminToken || result.token
-
-          if (!adminToken) {
-            throw new Error('管理员登录失败')
-          }
-
-          wx.setStorageSync(ADMIN_TOKEN_KEY, adminToken)
-          this.setData({
-            isAdmin: true,
-            showAdminSheet: false,
-            adminPassword: '',
-            adminPasswordError: '',
-          })
-          wx.showToast({ title: '已进入管理', icon: 'success' })
-        })
-        .catch(error => {
-          this.setData({ adminPasswordError: error.message || '密码不正确' })
-        })
-        .finally(() => {
-          this.setData({ isAuthorizing: false })
-        })
     },
 
     handleSearchInput(event: WechatMiniprogram.Input) {
@@ -1147,7 +1131,7 @@ Component({
       })
     },
 
-    handleRangeStartChange(event: WechatMiniprogram.PickerChange) {
+    handleRangeStartChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
       const startDate = event.detail.value as string
       const endDate = this.data.rangeEndDate
       const normalizedEndDate = endDate && endDate < startDate ? startDate : endDate
@@ -1164,7 +1148,7 @@ Component({
       this.applyFilters(this.data.searchKeyword, 'range', rangeFilter)
     },
 
-    handleRangeEndChange(event: WechatMiniprogram.PickerChange) {
+    handleRangeEndChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
       const endDate = event.detail.value as string
       const startDate = this.data.rangeStartDate
       const normalizedStartDate = startDate && startDate > endDate ? endDate : startDate
@@ -1357,6 +1341,14 @@ Component({
       const userProfile = getStoredProfile()
 
       if (userProfile) {
+        if (action === 'create' && !canCreateWithCredit(userProfile.creditScore)) {
+          wx.showToast({ title: '信誉分过低，暂无法发起接龙', icon: 'none' })
+          return
+        }
+        if (action === 'join' && !canJoinWithCredit(userProfile.creditScore)) {
+          wx.showToast({ title: '信誉分低于 70，暂无法参与接龙', icon: 'none' })
+          return
+        }
         getApp<IAppOption>().globalData.userProfile = userProfile
         this.completePendingAction(action)
         return
@@ -1391,8 +1383,11 @@ Component({
           this.setData({
             nickName: profile.nickName,
             steamId: profile.steamId,
+            steamIdLocked: !!profile.steamId,
             gender: profile.gender,
             avatarUrl: profile.avatarUrl,
+            creditScore: profile.creditScore ?? 100,
+            creditStatus: profile.creditStatus || getCreditStatus(profile.creditScore ?? 100),
           })
         }
 
@@ -1420,6 +1415,10 @@ Component({
         .finally(() => {
           this.setData({ isAuthorizing: false })
         })
+    },
+
+    openProfilePage() {
+      wx.navigateTo({ url: '/pages/profile/profile' })
     },
 
     selectGender(event: WechatMiniprogram.TouchEvent) {
@@ -1501,8 +1500,11 @@ Component({
         this.setData({
           nickName: normalizedProfile.nickName,
           steamId: normalizedProfile.steamId,
+          steamIdLocked: !!normalizedProfile.steamId,
           gender: normalizedProfile.gender,
           avatarUrl: normalizedProfile.avatarUrl,
+          creditScore: normalizedProfile.creditScore ?? 100,
+          creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore ?? 100),
           showProfileSheet: closeSheet ? false : this.data.showProfileSheet,
         })
 
@@ -1518,6 +1520,10 @@ Component({
     },
 
     handleSteamIdInput(event: WechatMiniprogram.Input) {
+      if (this.data.steamIdLocked) {
+        return
+      }
+
       this.setData({
         steamId: event.detail.value.trim(),
         steamIdError: '',
@@ -1538,7 +1544,7 @@ Component({
       })
     },
 
-    handleCreateDateChange(event: WechatMiniprogram.PickerChange) {
+    handleCreateDateChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
       const createDate = event.detail.value as string
       if (isDateBeforeToday(createDate)) {
         wx.showToast({ title: '不能选择今天之前的日期', icon: 'none' })
@@ -1551,7 +1557,7 @@ Component({
       this.syncCreateTimeLimit()
     },
 
-    handleCreateStartDateChange(event: WechatMiniprogram.PickerChange) {
+    handleCreateStartDateChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
       const startDate = event.detail.value as string
       if (isDateBeforeToday(startDate)) {
         wx.showToast({ title: '不能选择今天之前的日期', icon: 'none' })
@@ -1565,7 +1571,7 @@ Component({
       })
     },
 
-    handleCreateEndDateChange(event: WechatMiniprogram.PickerChange) {
+    handleCreateEndDateChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
       const endDate = event.detail.value as string
       if (isDateBeforeToday(endDate)) {
         wx.showToast({ title: '不能选择今天之前的日期', icon: 'none' })
@@ -1579,7 +1585,7 @@ Component({
       })
     },
 
-    handleCreateTimeChange(event: WechatMiniprogram.PickerChange) {
+    handleCreateTimeChange(event: WechatMiniprogram.PickerChange | { detail: { value: string } }) {
       const createTime = event.detail.value as string
       const createTimeError =
         this.data.createScheduleType === 'once' &&
@@ -2040,6 +2046,11 @@ Component({
       }
 
       if (action === 'create') {
+        if (!this.data.publishTakeoverEnabled) {
+          wx.showToast({ title: '暂未开放发起接龙', icon: 'none' })
+          return
+        }
+
         this.setData({ showCreateSheet: true })
         this.syncCreateTimeLimit()
         return
@@ -2050,8 +2061,17 @@ Component({
         return
       }
 
+      this.navigateToDetail(this.data.pendingTakeoverId)
+    },
+
+    navigateToDetail(takeoverId: string) {
       wx.navigateTo({
-        url: `/pages/detail/detail?id=${encodeURIComponent(this.data.pendingTakeoverId)}`,
+        url: `/pages/detail/detail?id=${encodeURIComponent(takeoverId)}`,
+        events: {
+          takeoverChanged: () => {
+            this.loadTakeoversFromServer(1, true)
+          },
+        },
       })
     },
 

@@ -1,0 +1,47 @@
+<view class="takeover-card takeover-card-{{takeover.statusTone}}" bindtap="handleTap">
+  <image class="card-cover" src="{{takeover.coverImage}}" mode="aspectFit"></image>
+  <view class="card-sparkle card-sparkle-one">✦</view>
+  <view class="card-sparkle card-sparkle-two">♡</view>
+  <view class="status-badge status-{{takeover.statusTone}}">{{takeover.statusLabel}}</view>
+
+  <view class="creator-badge">
+    <text class="creator-icon">🎮</text>
+    <text class="creator-name">{{takeover.host || takeover.creatorName || '兔兔窝'}}</text>
+  </view>
+
+  <view class="card-head">
+    <text class="card-title">{{takeover.title}}</text>
+  </view>
+
+  <view class="card-note">
+    <text class="note-text">{{takeover.description}}</text>
+  </view>
+
+  <view class="card-meta-list">
+    <view class="card-meta-row">
+      <view class="meta-icon">
+        <image class="meta-icon-image" src="/assets/icon-time.svg" mode="aspectFit"></image>
+      </view>
+      <text class="meta-value">{{takeover.scheduleText}}</text>
+    </view>
+    <view class="card-meta-row">
+      <view class="meta-icon">
+        <image class="meta-icon-image" src="/assets/icon-members.svg" mode="aspectFit"></image>
+      </view>
+      <text class="meta-value">{{takeover.joined || takeover.joinedCount}} / {{takeover.limit || takeover.participantLimit}}</text>
+    </view>
+  </view>
+
+  <view class="card-foot">
+    <view class="avatar-stack">
+      <image
+        class="member-avatar"
+        wx:for="{{takeover.participantAvatars}}"
+        wx:for-item="avatar"
+        wx:key="*this"
+        src="{{avatar}}"
+        mode="aspectFill"
+      ></image>
+    </view>
+  </view>
+</view>

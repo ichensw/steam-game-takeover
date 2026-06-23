@@ -265,7 +265,11 @@ button::after {
   margin-top: 14rpx;
 }
 
-.range-picker {
+.range-filter-panel picker-field {
+  min-width: 0;
+}
+
+.range-filter-panel .picker-field {
   min-width: 0;
   height: 66rpx;
   display: flex;
@@ -279,20 +283,11 @@ button::after {
   box-sizing: border-box;
 }
 
-.range-picker-label {
-  flex-shrink: 0;
-  color: #aa6ee8;
-  font-size: 22rpx;
-}
-
-.range-picker-value {
-  min-width: 0;
+.range-filter-panel .picker-field-text {
   color: #351556;
   font-size: 24rpx;
   font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 66rpx;
 }
 
 .range-clear {
@@ -685,36 +680,6 @@ button::after {
   font-weight: 500;
 }
 
-.admin-float {
-  position: fixed;
-  left: 32rpx;
-  bottom: calc(34rpx + env(safe-area-inset-bottom));
-  z-index: 8;
-  width: 78rpx;
-  height: 78rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
-  border-radius: 50%;
-  background: rgba(24, 27, 37, 0.9);
-  color: rgba(247, 248, 255, 0.58);
-  box-shadow: 0 12rpx 28rpx rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(12rpx);
-}
-
-.admin-float-active {
-  border-color: rgba(45, 212, 191, 0.28);
-  background: rgba(45, 212, 191, 0.14);
-}
-
-.admin-float-icon {
-  width: 42rpx;
-  height: 42rpx;
-  display: block;
-}
-
 .profile-float {
   position: fixed;
   right: 32rpx;
@@ -746,6 +711,49 @@ button::after {
   border: 2rpx solid rgba(255, 255, 255, 0.78);
   background: rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
+}
+
+.credit-float {
+  position: absolute;
+  top: -12rpx;
+  right: -18rpx;
+  z-index: 1;
+  width: 70rpx;
+  height: 70rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid rgba(255, 255, 255, 0.68);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #20c97a 0%, #12b6cb 100%);
+  color: #ffffff;
+  box-shadow: 0 12rpx 28rpx rgba(21, 128, 61, 0.24), 0 0 18rpx rgba(34, 197, 94, 0.28);
+  box-sizing: border-box;
+  backdrop-filter: blur(12rpx);
+}
+
+.credit-float-label {
+  font-size: 16rpx;
+  line-height: 18rpx;
+  font-weight: 700;
+  opacity: 0.86;
+}
+
+.credit-float-value {
+  font-size: 26rpx;
+  line-height: 28rpx;
+  font-weight: 900;
+}
+
+.credit-limited {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  box-shadow: 0 12rpx 28rpx rgba(180, 83, 9, 0.24), 0 0 18rpx rgba(245, 158, 11, 0.26);
+}
+
+.credit-disabled {
+  background: linear-gradient(135deg, #292524 0%, #7f1d1d 100%);
+  box-shadow: 0 12rpx 28rpx rgba(17, 24, 39, 0.28), 0 0 18rpx rgba(127, 29, 29, 0.24);
 }
 
 .profile-float-copy {
@@ -851,10 +859,6 @@ button::after {
 
 .detail-sheet {
   max-height: 82vh;
-}
-
-.admin-sheet {
-  max-height: 60vh;
 }
 
 .card-menu-sheet {
@@ -1130,6 +1134,12 @@ button::after {
   line-height: 92rpx;
 }
 
+.input[disabled] {
+  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(247, 248, 255, 0.48);
+}
+
 .textarea {
   width: 100%;
   min-height: 150rpx;
@@ -1145,6 +1155,16 @@ button::after {
 
 .placeholder {
   color: rgba(247, 248, 255, 0.38);
+}
+
+.field-warning {
+  padding: 14rpx 18rpx;
+  border: 1rpx solid rgba(251, 191, 36, 0.38);
+  border-radius: 14rpx;
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  font-size: 22rpx;
+  line-height: 1.4;
 }
 
 .error {
@@ -1299,6 +1319,40 @@ button::after {
   font-size: 27rpx;
   line-height: 1.25;
   font-weight: 600;
+}
+
+.member-name-line {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.credit-badge {
+  flex-shrink: 0;
+  min-width: 88rpx;
+  height: 32rpx;
+  padding: 0 12rpx;
+  border-radius: 999rpx;
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+  font-size: 19rpx;
+  line-height: 32rpx;
+  font-weight: 800;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.credit-badge.credit-limited {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  box-shadow: none;
+}
+
+.credit-badge.credit-disabled {
+  background: rgba(127, 29, 29, 0.12);
+  color: #991b1b;
+  box-shadow: none;
 }
 
 .member-steam {
@@ -1537,7 +1591,7 @@ page {
   margin-top: 16rpx;
 }
 
-.range-picker {
+.range-filter-panel .picker-field {
   border: 0;
   border-radius: 18rpx;
   background: rgba(255, 255, 255, 0.74);
@@ -1843,20 +1897,6 @@ page {
   font-weight: 900;
 }
 
-.admin-float {
-  left: 28rpx;
-  bottom: calc(44rpx + env(safe-area-inset-bottom));
-  width: 72rpx;
-  height: 72rpx;
-  border: 2rpx solid rgba(255, 255, 255, 0.46);
-  background: rgba(63, 25, 159, 0.74);
-  box-shadow: 0 0 22rpx rgba(255, 72, 204, 0.36);
-}
-
-.admin-float-active {
-  background: linear-gradient(135deg, rgba(91, 148, 255, 0.85), rgba(255, 81, 185, 0.85));
-}
-
 .profile-float {
   right: 30rpx;
   bottom: calc(26rpx + env(safe-area-inset-bottom));
@@ -1869,6 +1909,11 @@ page {
   border-radius: 50%;
   background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.22) 0%, rgba(130, 75, 255, 0.82) 58%, rgba(74, 27, 168, 0.94) 100%);
   box-shadow: 0 0 28rpx rgba(255, 108, 219, 0.62), inset 0 0 20rpx rgba(255, 255, 255, 0.12);
+}
+
+.profile-float .credit-float {
+  top: -14rpx;
+  right: -22rpx;
 }
 
 .profile-float-avatar {
@@ -2621,7 +2666,7 @@ page {
 .search-box,
 .filter-actions .time-filter,
 .time-dropdown,
-.range-picker {
+.range-filter-panel .picker-field {
   background: rgba(255, 255, 255, 0.54);
   box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.48);
   backdrop-filter: blur(12rpx);

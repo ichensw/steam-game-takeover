@@ -33,7 +33,7 @@
       </view>
     </view>
 
-    <view class="admin-actions" wx:if="{{takeover && canManage}}">
+    <view class="admin-actions" wx:if="{{takeover && canManage && takeover.statusLabel !== '已结束'}}">
       <button class="admin-action-button" bindtap="openEditSheet">编辑</button>
       <button class="admin-action-button admin-danger-button" loading="{{isDeleting}}" disabled="{{isDeleting}}" bindtap="deleteAdminTakeover">删除</button>
     </view>
@@ -48,10 +48,13 @@
         <view class="member-row" wx:for="{{takeover.participants}}" wx:key="steamId">
           <image class="member-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
           <view class="member-info">
-            <text class="member-name">{{item.nickName}}</text>
+            <view class="member-name-line">
+              <text class="member-name">{{item.nickName}}</text>
+              <text class="credit-badge credit-{{item.creditStatus}}">信誉 {{item.creditScore}}</text>
+            </view>
             <text class="member-steam">SteamID：{{item.steamId}}</text>
           </view>
-          <button class="copy-button" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
+          <button class="report-button" data-userid="{{item.userId}}" data-nickname="{{item.nickName}}" bindtap="openReportSheet">举报</button>
         </view>
       </view>
     </view>
@@ -107,27 +110,19 @@
         </view>
         <view class="edit-field" wx:if="{{editScheduleType === 'once'}}">
           <text class="edit-label">指定日期</text>
-          <picker mode="date" value="{{editDate}}" start="{{todayDate}}" bindchange="handleEditDateChange">
-            <view class="admin-input picker-input">{{editDate || '选择日期'}}</view>
-          </picker>
+          <picker-field mode="date" value="{{editDate}}" start="{{todayDate}}" placeholder="选择日期" bindchange="handleEditDateChange"></picker-field>
         </view>
         <view class="edit-field" wx:elif="{{editScheduleType === 'range'}}">
           <text class="edit-label">日期范围</text>
           <view class="range-row">
-            <picker class="range-input" mode="date" value="{{editStartDate}}" start="{{todayDate}}" bindchange="handleEditStartDateChange">
-              <view class="admin-input range-input-inner">{{editStartDate || '开始'}}</view>
-            </picker>
+            <picker-field class="range-input" mode="date" value="{{editStartDate}}" start="{{todayDate}}" placeholder="开始" bindchange="handleEditStartDateChange"></picker-field>
             <text class="range-separator">至</text>
-            <picker class="range-input" mode="date" value="{{editEndDate}}" start="{{editStartDate || todayDate}}" bindchange="handleEditEndDateChange">
-              <view class="admin-input range-input-inner">{{editEndDate || '结束'}}</view>
-            </picker>
+            <picker-field class="range-input" mode="date" value="{{editEndDate}}" start="{{editStartDate || todayDate}}" placeholder="结束" bindchange="handleEditEndDateChange"></picker-field>
           </view>
         </view>
         <view class="edit-field">
           <text class="edit-label">固定时间</text>
-          <picker mode="time" value="{{editTime}}" bindchange="handleEditTimeChange">
-            <view class="admin-input picker-input">{{editTime || '选择时间'}}</view>
-          </picker>
+          <picker-field mode="time" value="{{editTime}}" placeholder="选择时间" bindchange="handleEditTimeChange"></picker-field>
         </view>
         <view class="edit-field">
           <text class="edit-label">介绍</text>
@@ -138,6 +133,36 @@
 
     <button class="sheet-submit" loading="{{isSavingAdmin}}" disabled="{{isSavingAdmin}}" bindtap="saveAdminEdit">
       {{isSavingAdmin ? '保存中...' : '保存修改'}}
+    </button>
+  </view>
+
+  <view class="sheet-mask" wx:if="{{showReportSheet}}" bindtap="closeReportSheet"></view>
+  <view class="admin-sheet report-sheet" wx:if="{{showReportSheet}}">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title-row">
+      <view class="report-title-copy">
+        <text class="sheet-title">举报队友</text>
+        <text class="report-target">{{reportNickname}}</text>
+      </view>
+      <view class="close-button" bindtap="closeReportSheet">×</view>
+    </view>
+
+    <view class="edit-form">
+      <view class="edit-field">
+        <text class="edit-label">举报内容</text>
+        <textarea class="admin-textarea report-textarea" value="{{reportContent}}" maxlength="500" placeholder="请描述违规行为、时间或相关情况" placeholder-class="placeholder" bindinput="handleReportContentInput" />
+      </view>
+      <view class="edit-field">
+        <text class="edit-label">举报截图（选填）</text>
+        <button class="report-image-button" loading="{{isUploadingReportImage}}" disabled="{{isUploadingReportImage}}" bindtap="chooseReportImage">
+          {{reportImageUrl ? '重新上传截图' : '上传截图'}}
+        </button>
+        <image wx:if="{{reportImageUrl}}" class="report-preview" src="{{reportImageUrl}}" mode="aspectFill"></image>
+      </view>
+    </view>
+
+    <button class="sheet-submit" loading="{{isSubmittingReport}}" disabled="{{isSubmittingReport || isUploadingReportImage}}" bindtap="submitReport">
+      {{isSubmittingReport ? '提交中...' : '提交举报'}}
     </button>
   </view>
 </view>
