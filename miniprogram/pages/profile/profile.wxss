@@ -168,7 +168,7 @@ button::after {
 
 .stat-credit {
   background: linear-gradient(135deg, #20c97a 0%, #12b6cb 100%);
-  font-size: 30rpx;
+  font-size: 42rpx;
   font-weight: 900;
   box-shadow: 0 0 18rpx rgba(34, 197, 94, 0.34);
 }
