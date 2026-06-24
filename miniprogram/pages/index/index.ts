@@ -903,7 +903,7 @@ const getServerTimeFilter = (timeFilter: TimeFilter, rangeFilter: RangeFilter) =
 const isPendingRangeFilter = (timeFilter: TimeFilter, rangeFilter: RangeFilter) =>
   timeFilter === 'range' && (!rangeFilter.startDate || !rangeFilter.endDate)
 
-Component({
+Page({
   data: {
     takeoverList: [] as Takeover[],
     searchKeyword: '',
@@ -965,56 +965,51 @@ Component({
     createDescriptionError: '',
   },
 
-  lifetimes: {
-    attached() {
-      enableShareMenu()
-      const userProfile = getStoredProfile()
+  onLoad() {
+    enableShareMenu()
+    const userProfile = getStoredProfile()
 
+    this.setData({
+      isAdmin: !!(userProfile && userProfile.isAdmin),
+    })
+
+    if (userProfile) {
+      getApp<IAppOption>().globalData.userProfile = userProfile
       this.setData({
-        isAdmin: !!(userProfile && userProfile.isAdmin),
+        nickName: userProfile.nickName,
+        steamId: userProfile.steamId,
+        steamIdLocked: !!userProfile.steamId,
+        gender: userProfile.gender,
+        avatarUrl: userProfile.avatarUrl,
+        isAdmin: !!userProfile.isAdmin,
       })
+    }
 
-      if (userProfile) {
-        getApp<IAppOption>().globalData.userProfile = userProfile
-        this.setData({
-          nickName: userProfile.nickName,
-          steamId: userProfile.steamId,
-          steamIdLocked: !!userProfile.steamId,
-          gender: userProfile.gender,
-          avatarUrl: userProfile.avatarUrl,
-          isAdmin: !!userProfile.isAdmin,
-        })
-      }
-
-      this.bootstrap()
-    },
+    this.bootstrap()
   },
 
-  pageLifetimes: {
-    show() {
-      if (!getUserToken() || this.data.isAuthorizing) {
-        return
-      }
+  onShow() {
+    if (!getUserToken() || this.data.isAuthorizing) {
+      return
+    }
 
-      wx.removeStorageSync(HOME_REFRESH_KEY)
-      this.loadTakeoversFromServer(1, true)
-    },
+    wx.removeStorageSync(HOME_REFRESH_KEY)
+    this.loadTakeoversFromServer(1, true)
   },
 
-  methods: {
-    onShareAppMessage() {
-      return {
-        title: HOME_SHARE_TITLE,
-        path: HOME_SHARE_PATH,
-      }
-    },
+  onShareAppMessage() {
+    return {
+      title: HOME_SHARE_TITLE,
+      path: HOME_SHARE_PATH,
+    }
+  },
 
-    onShareTimeline() {
-      return {
-        title: HOME_SHARE_TITLE,
-        query: '',
-      }
-    },
+  onShareTimeline() {
+    return {
+      title: HOME_SHARE_TITLE,
+      query: '',
+    }
+  },
 
     bootstrap() {
       this.setData({ isAuthorizing: true })
@@ -2253,5 +2248,4 @@ Component({
           this.setData({ isAuthorizing: false })
         })
     },
-  },
 })
