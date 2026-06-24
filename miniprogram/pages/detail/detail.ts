@@ -1,5 +1,7 @@
 export {}
 
+import { enableShareMenu, HOME_SHARE_TITLE } from '../../utils/share'
+
 type Gender = 'male' | 'female'
 type ScheduleType = 'once' | 'daily' | 'range'
 type Schedule =
@@ -491,6 +493,7 @@ const getStoredProfile = (): UserProfile | null => {
 Page({
   data: {
     takeoverId: '',
+    sharePath: '/pages/index/index',
     takeover: null as Takeover | null,
     isLoading: false,
     isJoining: false,
@@ -528,7 +531,11 @@ Page({
     const takeoverId = decodeURIComponent(options.id || '')
     const storedProfile = getStoredProfile()
 
-    this.setData({ takeoverId })
+    enableShareMenu()
+    this.setData({
+      takeoverId,
+      sharePath: takeoverId ? `/pages/detail/detail?id=${encodeURIComponent(takeoverId)}` : '/pages/index/index',
+    })
     this.setData({ canManage: !!(storedProfile && storedProfile.isAdmin) })
     if (!takeoverId) {
       wx.showToast({ title: '队伍不存在', icon: 'none' })
@@ -559,6 +566,22 @@ Page({
         }
       })
       .catch(() => {})
+  },
+
+  onShareAppMessage() {
+    const takeover = this.data.takeover
+    return {
+      title: takeover ? `${takeover.title} - ${HOME_SHARE_TITLE}` : HOME_SHARE_TITLE,
+      path: this.data.sharePath,
+    }
+  },
+
+  onShareTimeline() {
+    const takeover = this.data.takeover
+    return {
+      title: takeover ? `${takeover.title} - ${HOME_SHARE_TITLE}` : HOME_SHARE_TITLE,
+      query: this.data.takeoverId ? `id=${encodeURIComponent(this.data.takeoverId)}` : '',
+    }
   },
 
   openEditSheet() {
@@ -758,13 +781,14 @@ Page({
       })
   },
 
-  withReportState(takeover: Takeover, reportedUserKeys = this.data.reportedUserKeys) {
+  withReportState(takeover: Takeover, reportedUserKeys?: string[]) {
+    const keys = reportedUserKeys || this.data.reportedUserKeys
     return {
       ...takeover,
       participants: takeover.participants.map(participant => {
         const userKey = getUserKey(participant)
         const isSelf = !!participant.isSelf
-        const hasReported = !!participant.hasReported || (!!userKey && reportedUserKeys.indexOf(userKey) >= 0)
+        const hasReported = !!participant.hasReported || (!!userKey && keys.indexOf(userKey) >= 0)
         return {
           ...participant,
           isSelf,

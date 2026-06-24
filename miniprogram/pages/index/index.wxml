@@ -60,11 +60,7 @@
       </view>
     </view>
 
-    <view class="empty-state" wx:if="{{isBlocked}}">
-      <text>{{blockedMessage || '您已被管理员拉黑'}}</text>
-    </view>
-
-    <view class="empty-state" wx:elif="{{!takeoverList.length && !isRefreshing}}">
+    <view class="empty-state" wx:if="{{!takeoverList.length && !isRefreshing}}">
       <text>没有找到合适的接龙</text>
     </view>
 
@@ -238,9 +234,6 @@
             <text class="member-steam">SteamID：{{item.steamId}}</text>
             <button class="copy-button" wx:if="{{!isAdmin}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
           </view>
-        </view>
-        <view class="member-actions" wx:if="{{isAdmin}}">
-          <button class="block-button" data-userid="{{item.userId}}" data-steamid="{{item.steamId}}" bindtap="blockUser">拉黑</button>
         </view>
       </view>
     </view>

@@ -1,3 +1,5 @@
+import { enableShareMenu, HOME_SHARE_TITLE } from '../../utils/share'
+
 {
 type Gender = 'male' | 'female'
 type ProfileMode = 'complete' | 'edit'
@@ -208,6 +210,7 @@ Page({
   },
 
   onLoad() {
+    enableShareMenu()
     if (!getUserToken()) {
       wx.redirectTo({ url: '/pages/index/index' })
       return
@@ -237,6 +240,21 @@ Page({
       .finally(() => {
         this.setData({ isLoading: false })
       })
+  },
+
+  onShareAppMessage() {
+    const nickname = this.data.user.nickname || '兔兔玩家'
+    return {
+      title: `${nickname} 的兔兔窝主页`,
+      path: '/pages/profile/profile',
+    }
+  },
+
+  onShareTimeline() {
+    return {
+      title: HOME_SHARE_TITLE,
+      query: '',
+    }
   },
 
   openTakeover(event: WechatMiniprogram.TouchEvent & { detail?: { id?: number | string } }) {

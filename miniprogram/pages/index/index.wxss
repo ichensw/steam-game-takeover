@@ -1524,31 +1524,6 @@ button::after {
   color: #9cf5e8;
 }
 
-.member-actions {
-  width: 68rpx;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10rpx;
-}
-
-.block-button {
-  width: 64rpx;
-  height: 44rpx;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 12rpx;
-  background: rgba(251, 113, 133, 0.14);
-  color: #fb7185;
-  font-size: 21rpx;
-  line-height: 44rpx;
-  font-weight: 600;
-}
-
 /* Neon rabbit lobby skin */
 page {
   background: #17035f;

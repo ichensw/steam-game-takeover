@@ -1,3 +1,5 @@
+import { enableShareMenu, HOME_SHARE_TITLE } from '../../utils/share'
+
 type ApiResponse<T> = {
   success?: boolean
   code?: string
@@ -96,7 +98,22 @@ Page({
   },
 
   onLoad() {
+    enableShareMenu()
     this.loadList(1, true)
+  },
+
+  onShareAppMessage() {
+    return {
+      title: `我的接龙 - ${HOME_SHARE_TITLE}`,
+      path: '/pages/my-takeovers/my-takeovers',
+    }
+  },
+
+  onShareTimeline() {
+    return {
+      title: HOME_SHARE_TITLE,
+      query: '',
+    }
   },
 
   loadList(page: number, replace: boolean) {

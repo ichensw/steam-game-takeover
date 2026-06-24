@@ -1,3 +1,5 @@
+import { enableShareMenu, HOME_SHARE_PATH, HOME_SHARE_TITLE } from '../../utils/share'
+
 type PendingAction = 'view' | 'join' | 'create' | 'profile'
 type Gender = 'male' | 'female'
 type ScheduleType = 'once' | 'daily' | 'range'
@@ -63,7 +65,6 @@ const PAGE_SIZE = 5
 
 const PROFILE_KEY = 'steam_takeover_user'
 const TOKEN_KEY = 'steam_takeover_token'
-const ADMIN_TOKEN_KEY = 'steam_takeover_admin_token'
 const HOME_REFRESH_KEY = 'steam_takeover_home_needs_refresh'
 const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
@@ -100,15 +101,13 @@ type ApiRequestOptions = {
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   data?: WechatMiniprogram.IAnyObject
-  tokenType?: 'user' | 'admin' | 'none'
+  tokenType?: 'user' | 'none'
 }
 
 type LoginResult = {
   token?: string
   user?: Record<string, any>
   profileCompleted?: boolean
-  blocked?: boolean
-  isBlocked?: boolean
   publishTakeoverEnabled?: boolean
 }
 
@@ -129,7 +128,6 @@ type ProfilePayload = {
 }
 
 const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
-const getAdminToken = () => wx.getStorageSync(ADMIN_TOKEN_KEY) as string
 
 const parseUploadResponse = (value: string) => {
   try {
@@ -150,12 +148,7 @@ const apiError = (body: ApiResponse<unknown> | null | undefined, fallback: strin
 
 const apiRequest = <T>(options: ApiRequestOptions) => {
   return new Promise<T>((resolve, reject) => {
-    const token =
-      options.tokenType === 'admin'
-        ? getAdminToken()
-        : options.tokenType === 'none'
-          ? ''
-          : getUserToken()
+    const token = options.tokenType === 'none' ? '' : getUserToken()
     const header: WechatMiniprogram.IAnyObject = {
       'content-type': 'application/json',
     }
@@ -933,8 +926,6 @@ Component({
     isSubmittingTakeover: false,
     isSaving: false,
     isUploadingAvatar: false,
-    isBlocked: false,
-    blockedMessage: '',
     publishTakeoverEnabled: false,
     profileCompleted: false,
     isAdmin: false,
@@ -948,7 +939,6 @@ Component({
     managingTakeover: null as Takeover | null,
     pendingAction: '' as PendingAction | '',
     pendingTakeoverId: '',
-    blacklistedSteamIds: [] as string[],
     nickName: '',
     steamId: '',
     steamIdLocked: false,
@@ -977,10 +967,11 @@ Component({
 
   lifetimes: {
     attached() {
+      enableShareMenu()
       const userProfile = getStoredProfile()
 
       this.setData({
-        isAdmin: !!getAdminToken(),
+        isAdmin: !!(userProfile && userProfile.isAdmin),
       })
 
       if (userProfile) {
@@ -991,6 +982,7 @@ Component({
           steamIdLocked: !!userProfile.steamId,
           gender: userProfile.gender,
           avatarUrl: userProfile.avatarUrl,
+          isAdmin: !!userProfile.isAdmin,
         })
       }
 
@@ -1000,7 +992,7 @@ Component({
 
   pageLifetimes: {
     show() {
-      if (!getUserToken() || this.data.isAuthorizing || this.data.isBlocked) {
+      if (!getUserToken() || this.data.isAuthorizing) {
         return
       }
 
@@ -1010,6 +1002,20 @@ Component({
   },
 
   methods: {
+    onShareAppMessage() {
+      return {
+        title: HOME_SHARE_TITLE,
+        path: HOME_SHARE_PATH,
+      }
+    },
+
+    onShareTimeline() {
+      return {
+        title: HOME_SHARE_TITLE,
+        query: '',
+      }
+    },
+
     bootstrap() {
       this.setData({ isAuthorizing: true })
       wx.login({
@@ -1043,6 +1049,7 @@ Component({
                   steamIdLocked: !!normalizedProfile.steamId,
                   gender: normalizedProfile.gender,
                   avatarUrl: normalizedProfile.avatarUrl,
+                  isAdmin: !!normalizedProfile.isAdmin,
                   creditScore: normalizedProfile.creditScore !== undefined && normalizedProfile.creditScore !== null ? normalizedProfile.creditScore : 100,
                   creditStatus: normalizedProfile.creditStatus || getCreditStatus(normalizedProfile.creditScore !== undefined && normalizedProfile.creditScore !== null ? normalizedProfile.creditScore : 100),
                 })
@@ -1056,25 +1063,12 @@ Component({
                   steamIdLocked: false,
                   gender: '',
                   avatarUrl: '',
+                  isAdmin: false,
                   creditScore: 100,
                   creditStatus: 'normal',
                 })
               }
 
-              if (result.blocked || result.isBlocked) {
-                this.setData({
-                  isBlocked: true,
-                  blockedMessage: '您已被管理员拉黑',
-                  takeoverList: [],
-                  hasMore: false,
-                })
-                return
-              }
-
-              this.setData({
-                isBlocked: false,
-                blockedMessage: '',
-              })
               this.loadTakeoversFromServer(1, true)
             })
             .catch(error => {
@@ -1236,10 +1230,6 @@ Component({
     },
 
     loadTakeoversFromServer(page: number, replace: boolean, nextRangeFilter?: RangeFilter) {
-      if (this.data.isBlocked) {
-        return
-      }
-
       const rangeFilter = nextRangeFilter || {
         startDate: this.data.rangeStartDate,
         endDate: this.data.rangeEndDate,
@@ -1271,16 +1261,6 @@ Component({
           })
         })
         .catch(error => {
-          if (error.message === 'USER_BLOCKED' || error.message.includes('拉黑')) {
-            this.setData({
-              isBlocked: true,
-              blockedMessage: '您已被管理员拉黑',
-              takeoverList: [],
-              hasMore: false,
-            })
-            return
-          }
-
           wx.showToast({ title: error.message || '列表加载失败', icon: 'none' })
         })
     },
@@ -1366,11 +1346,6 @@ Component({
         pendingTakeoverId: takeoverId,
       })
 
-      if (this.data.isBlocked) {
-        wx.showToast({ title: '您已被管理员拉黑', icon: 'none' })
-        return
-      }
-
       const pageProfile = isCompleteProfile({
         nickName: this.data.nickName,
         steamId: this.data.steamId,
@@ -1455,11 +1430,6 @@ Component({
     },
 
     openProfileEditor() {
-      if (this.data.isBlocked) {
-        wx.showToast({ title: '您已被管理员拉黑', icon: 'none' })
-        return
-      }
-
       this.setData({
         pendingAction: '',
         pendingTakeoverId: '',
@@ -1898,7 +1868,6 @@ Component({
           apiRequest<null>({
             url: `/api/admin/takeovers/${takeoverId}`,
             method: 'DELETE',
-            tokenType: 'admin',
           })
             .then(() => {
               allTakeovers = allTakeovers.filter(takeover => takeover.id !== takeoverId)
@@ -1968,7 +1937,6 @@ Component({
           url: `/api/admin/takeovers/${editingTakeover.id}`,
           method: 'PUT',
           data: payload,
-          tokenType: 'admin',
         })
           .then(result => {
             const editedTakeover = result ? normalizeTakeover(result as Record<string, any>) : createMockTakeover({
@@ -2258,73 +2226,6 @@ Component({
         data: steamId,
         success: () => {
           wx.showToast({ title: '已复制 SteamID', icon: 'success' })
-        },
-      })
-    },
-
-    blockUser(event: WechatMiniprogram.TouchEvent) {
-      if (!this.data.isAdmin) {
-        return
-      }
-
-      const steamId = event.currentTarget.dataset.steamid as string
-      const userId = event.currentTarget.dataset.userid as string
-
-      if (!userId && !steamId) {
-        return
-      }
-
-      wx.showModal({
-        title: '拉黑用户',
-        content: `拉黑 ${steamId} 后，该用户不能继续加入或创建接龙。`,
-        confirmText: '拉黑',
-        confirmColor: '#fb7185',
-        success: ({ confirm }) => {
-          if (!confirm) {
-            return
-          }
-
-          this.setData({ isAuthorizing: true })
-          apiRequest<null>({
-            url: `/api/admin/users/${userId || steamId}/block`,
-            method: 'POST',
-            data: { reason: '管理员拉黑' },
-            tokenType: 'admin',
-          })
-            .then(() => {
-              allTakeovers = allTakeovers.map(takeover => {
-                const participants = takeover.participants.filter(participant =>
-                  userId ? participant.userId !== userId : participant.steamId !== steamId
-                )
-                const joined = Math.min(participants.length, takeover.limit)
-
-                return {
-                  ...takeover,
-                  joined,
-                  participants,
-                  participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 5),
-                }
-              })
-
-              const currentTakeover = this.data.currentTakeover
-                ? allTakeovers.find(takeover => takeover.id === (this.data.currentTakeover && this.data.currentTakeover.id)) || null
-                : null
-
-              this.setData({
-                currentTakeover,
-                ...(currentTakeover
-                  ? this.getDetailJoinState(currentTakeover)
-                  : { detailJoinStatusText: '未加入', showDetailJoinButton: false }),
-              })
-              this.loadTakeoversFromServer(1, true)
-              wx.showToast({ title: '已拉黑', icon: 'success' })
-            })
-            .catch(error => {
-              wx.showToast({ title: error.message || '拉黑失败', icon: 'none' })
-            })
-            .finally(() => {
-              this.setData({ isAuthorizing: false })
-            })
         },
       })
     },
