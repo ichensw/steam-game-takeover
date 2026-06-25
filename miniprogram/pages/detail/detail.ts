@@ -921,6 +921,10 @@ Page({
         const editedTakeover = result
           ? normalizeTakeover(result as Record<string, any>)
           : normalizeTakeover({ ...takeover, title, participantLimit: limit, scheduleType: this.data.editScheduleType, playTime: schedule.time, startDate: schedule.type === 'daily' ? '' : schedule.type === 'range' ? schedule.startDate : schedule.date, endDate: schedule.type === 'range' ? schedule.endDate : undefined, description, kookChannelId: this.data.editKookChannelId, kookChannelName: this.data.editKookChannelName })
+        if (!editedTakeover.participants.length) {
+          editedTakeover.participants = takeover.participants
+          editedTakeover.participantAvatars = takeover.participantAvatars
+        }
         this.setData({
           takeover: editedTakeover,
           ...this.getJoinState(editedTakeover),
