@@ -282,7 +282,7 @@ const normalizeUserProfile = (rawUser: Record<string, any> | null | undefined): 
   const steamId = rawUser.steamId || rawUser.steam_id || ''
   const creditScore = getCreditScore(rawUser)
 
-  if (!nickName || !steamId || !gender) {
+  if (!nickName || !gender) {
     return null
   }
 
@@ -902,8 +902,8 @@ const getStoredProfile = (): UserProfile | null => {
   return null
 }
 
-const isCompleteProfile = (profile: { nickName?: string; steamId?: string; gender?: Gender | '' } | null | undefined) =>
-  !!profile && !!profile.nickName && !!profile.steamId && (profile.gender === 'male' || profile.gender === 'female')
+const isCompleteProfile = (profile: { nickName?: string; gender?: Gender | '' } | null | undefined) =>
+  !!profile && !!profile.nickName && (profile.gender === 'male' || profile.gender === 'female')
 
 const getServerTimeFilter = (timeFilter: TimeFilter, rangeFilter: RangeFilter) => {
   const timeFilterMap: Record<TimeFilter, string> = {
@@ -1528,7 +1528,7 @@ Page({
             const steamId = this.data.steamId.trim()
             const gender = this.data.gender
 
-            if (nickName && steamId && gender) {
+            if (nickName && gender) {
               return this.persistProfile({ nickName, steamId, gender, avatarUrl: url }, false)
             }
 
@@ -2131,7 +2131,7 @@ Page({
 
     validateSteamId(steamId: string) {
       if (!steamId) {
-        return '请输入 SteamID'
+        return ''
       }
 
       if (!/^[0-9A-Za-z_:.-]{3,32}$/.test(steamId)) {

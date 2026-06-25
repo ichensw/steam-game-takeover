@@ -297,7 +297,7 @@ const normalizeUserProfile = (rawProfile: Record<string, any> | null | undefined
   const steamId = rawProfile.steamId || rawProfile.steam_id || ''
   const creditScore = getCreditScore(rawProfile)
 
-  if (!nickName || !steamId || !gender) {
+  if (!nickName || !gender) {
     return null
   }
 
@@ -728,7 +728,7 @@ Page({
   },
 
   validateSteamId(steamId: string) {
-    if (!steamId) return '请输入 SteamID'
+    if (!steamId) return ''
     return /^[0-9A-Za-z_:.-]{3,32}$/.test(steamId) ? '' : 'SteamID 可填写 3-32 位数字、字母或 _ : . -'
   },
 

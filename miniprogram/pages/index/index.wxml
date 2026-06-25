@@ -247,7 +247,7 @@
           </view>
           <view class="member-steam-line">
             <text class="member-steam">SteamID：{{item.steamId}}</text>
-            <button class="copy-button" wx:if="{{!isAdmin}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
+            <button class="copy-button" wx:if="{{!isAdmin && item.steamId}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
           </view>
         </view>
       </view>

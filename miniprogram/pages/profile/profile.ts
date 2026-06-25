@@ -230,7 +230,7 @@ Page({
           joinedCount: Number(safeSummary.joinedCount || 0),
           recent: (safeSummary.recent || []).map(formatCardTakeover),
         })
-        if (!normalizedUser.nickname || !normalizedUser.steamId || !normalizedUser.gender) {
+        if (!normalizedUser.nickname || !normalizedUser.gender) {
           this.openCompleteProfileSheet()
         }
       })
@@ -295,7 +295,11 @@ Page({
   },
 
   openProfileSheet() {
-    if (!this.data.user.nickname || !this.data.user.steamId || !this.data.user.gender) return
+    if (!this.data.user.nickname || !this.data.user.gender) return
+    if (!this.data.user.steamId) {
+      this.openCompleteProfileSheet()
+      return
+    }
     this.setData({
       showProfileSheet: true,
       profileMode: 'edit',
@@ -365,7 +369,7 @@ Page({
     }
 
     if (isCompleteMode) {
-      const steamIdError = steamId ? (/^[0-9A-Za-z_:.-]{3,32}$/.test(steamId) ? '' : 'SteamID 格式不对') : '请输入 SteamID'
+      const steamIdError = steamId ? (/^[0-9A-Za-z_:.-]{3,32}$/.test(steamId) ? '' : 'SteamID 格式不对') : ''
       const genderError = gender ? '' : '请选择性别'
       if (steamIdError || genderError) {
         this.setData({ editSteamIdError: steamIdError, editGenderError: genderError })
