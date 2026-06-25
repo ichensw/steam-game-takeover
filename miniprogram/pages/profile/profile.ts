@@ -296,10 +296,6 @@ Page({
 
   openProfileSheet() {
     if (!this.data.user.nickname || !this.data.user.gender) return
-    if (!this.data.user.steamId) {
-      this.openCompleteProfileSheet()
-      return
-    }
     this.setData({
       showProfileSheet: true,
       profileMode: 'edit',
@@ -368,19 +364,17 @@ Page({
       return
     }
 
-    if (isCompleteMode) {
-      const steamIdError = steamId ? (/^[0-9A-Za-z_:.-]{3,32}$/.test(steamId) ? '' : 'SteamID 格式不对') : ''
-      const genderError = gender ? '' : '请选择性别'
-      if (steamIdError || genderError) {
-        this.setData({ editSteamIdError: steamIdError, editGenderError: genderError })
-        return
-      }
+    const steamIdError = steamId ? (/^[0-9A-Za-z_:.-]{3,32}$/.test(steamId) ? '' : 'SteamID 格式不对') : ''
+    const genderError = isCompleteMode && !gender ? '请选择性别' : ''
+    if (steamIdError || genderError) {
+      this.setData({ editSteamIdError: steamIdError, editGenderError: genderError })
+      return
     }
 
     const avatarUrl = this.data.editAvatarUrl || (gender === 'male' ? MALE_AVATAR_URL : FEMALE_AVATAR_URL)
     const data = isCompleteMode
       ? { nickName: nickname, nickname, steamId, gender: toApiGender(gender as Gender), avatarUrl }
-      : { nickName: nickname, nickname, steamId: this.data.user.steamId, gender: this.data.user.gender, avatarUrl }
+      : { nickName: nickname, nickname, steamId, gender: this.data.user.gender, avatarUrl }
 
     this.setData({ isSavingProfile: true })
     apiRequest<Partial<User>>({

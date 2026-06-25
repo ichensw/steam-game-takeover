@@ -32,7 +32,7 @@
     <text class="field-error" wx:if="{{nicknameError}}">{{nicknameError}}</text>
   </view>
 
-  <view class="field" wx:if="{{mode === 'complete'}}">
+  <view class="field">
     <text class="field-label">SteamID（选填）</text>
     <input class="field-input" value="{{steamId}}" placeholder="输入 SteamID" placeholder-class="placeholder" disabled="{{steamIdLocked}}" bindinput="handleSteamIdInput" />
     <text class="field-warning">选填，保存后不能自行修改</text>
