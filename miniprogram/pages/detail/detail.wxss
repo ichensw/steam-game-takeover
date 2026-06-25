@@ -1047,6 +1047,136 @@ button::after {
   line-height: 82rpx;
 }
 
+.create-sheet {
+  left: 34rpx;
+  right: 34rpx;
+  bottom: 24rpx;
+  max-height: 88vh;
+  padding: 18rpx 28rpx calc(30rpx + env(safe-area-inset-bottom));
+  border-radius: 30rpx;
+  background: #faebff;
+  box-shadow: 0 22rpx 54rpx rgba(39, 12, 96, 0.34);
+}
+
+.create-sheet .sheet-handle {
+  width: 82rpx;
+  margin-bottom: 20rpx;
+  background: rgba(124, 60, 255, 0.22);
+}
+
+.create-sheet .sheet-title-row {
+  margin-bottom: 20rpx;
+}
+
+.create-sheet .sheet-title {
+  color: #351556;
+}
+
+.create-sheet .close-button {
+  width: 54rpx;
+  height: 54rpx;
+  background: rgba(124, 60, 255, 0.12);
+  color: #7c3cff;
+  font-weight: 700;
+}
+
+.create-scroll {
+  max-height: 58vh;
+}
+
+.create-sheet .form {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.create-sheet .field {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.create-sheet .label {
+  color: rgba(53, 21, 86, 0.72);
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.create-sheet .input,
+.create-sheet .textarea,
+.create-sheet picker-field {
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.create-sheet .input,
+.create-sheet .textarea {
+  width: 100%;
+  border: 0;
+  color: #351556;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.create-sheet .input,
+.create-sheet .picker-input,
+.create-sheet .range-input-inner {
+  height: 82rpx;
+  line-height: 82rpx;
+}
+
+.create-sheet .input {
+  padding: 0 22rpx;
+}
+
+.create-sheet .textarea {
+  min-height: 140rpx;
+  padding: 18rpx 22rpx;
+  line-height: 1.45;
+}
+
+.create-sheet .placeholder,
+.create-sheet .picker-placeholder {
+  color: rgba(53, 21, 86, 0.42);
+}
+
+.create-sheet .schedule-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 14rpx;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.create-sheet .schedule-option {
+  flex: 1;
+  height: 82rpx;
+  border: 2rpx solid rgba(124, 60, 255, 0.14);
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(53, 21, 86, 0.66);
+}
+
+.create-sheet .schedule-active {
+  border-color: rgba(255, 92, 185, 0.82);
+  background: rgba(255, 239, 252, 0.96);
+  color: #7c3cff;
+  box-shadow: 0 10rpx 24rpx rgba(255, 92, 185, 0.16);
+}
+
+.create-sheet .range-separator {
+  color: rgba(53, 21, 86, 0.58);
+  line-height: 82rpx;
+}
+
+.create-sheet .sheet-submit {
+  height: 82rpx;
+  border-radius: 22rpx;
+  line-height: 82rpx;
+}
+
 .schedule-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1081,18 +1211,6 @@ button::after {
 .range-input {
   min-width: 0;
   flex: 1;
-}
-
-.edit-field .picker-field {
-  height: 72rpx;
-  min-height: 72rpx;
-  padding: 0 22rpx;
-  font-size: 25rpx;
-  line-height: 72rpx;
-}
-
-.edit-field .picker-field-text {
-  line-height: 72rpx;
 }
 
 .range-separator {

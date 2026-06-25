@@ -64,17 +64,6 @@ type Takeover = {
   kookInviteUrl: string
 }
 
-type KookChannelNode = {
-  id: string
-  name: string
-}
-
-type KookChannelOption = {
-  id: string
-  name: string
-  label: string
-}
-
 const PAGE_SIZE = 5
 
 const PROFILE_KEY = 'steam_takeover_user'
@@ -442,15 +431,6 @@ const buildTakeoverPayload = (
     kookChannelId,
     kookChannelName,
   }
-}
-
-const filterKookChannelOptions = (options: KookChannelOption[], keyword: string) => {
-  const normalizedKeyword = keyword.trim().toLowerCase()
-  if (!normalizedKeyword) {
-    return options
-  }
-
-  return options.filter(item => item.label.toLowerCase().includes(normalizedKeyword))
 }
 
 function parseDateText(dateText: string) {
@@ -998,10 +978,6 @@ Page({
     selectedKookChannelId: '',
     selectedKookChannelName: '',
     kookChannelSearch: '',
-    kookChannelOptions: [] as KookChannelOption[],
-    filteredKookChannelOptions: [] as KookChannelOption[],
-    showKookChannelDropdown: false,
-    isLoadingKookChannels: false,
     editingTakeoverId: '',
     createTitleError: '',
     createLimitError: '',
@@ -1794,7 +1770,6 @@ Page({
       this.setData({
         showCreateSheet: false,
         editingTakeoverId: '',
-        showKookChannelDropdown: false,
       })
     },
 
@@ -1863,10 +1838,6 @@ Page({
     },
 
     fillEditTakeover(takeover: Takeover) {
-      if (!this.data.kookChannelOptions.length) {
-        this.loadKookChannels()
-      }
-
       this.setData({
         showCreateSheet: true,
         editingTakeoverId: takeover.id,
@@ -1883,7 +1854,6 @@ Page({
         selectedKookChannelId: takeover.kookChannelId,
         selectedKookChannelName: takeover.kookChannelName,
         kookChannelSearch: takeover.kookChannelName,
-        showKookChannelDropdown: false,
         createTitleError: '',
         createLimitError: '',
         createDateError: '',
@@ -1893,75 +1863,12 @@ Page({
       this.syncCreateTimeLimit()
     },
 
-    openKookChannelDropdown() {
-      this.setData({ showKookChannelDropdown: true })
-      if (!this.data.kookChannelOptions.length) {
-        this.loadKookChannels()
-      }
-    },
-
-    loadKookChannels() {
-      if (this.data.isLoadingKookChannels) {
-        return
-      }
-
-      this.setData({ isLoadingKookChannels: true })
-      apiRequest<{ list?: KookChannelNode[] }>({
-        url: '/api/kook/channels/all?type=2',
-      })
-        .then(result => {
-          const options = (result && Array.isArray(result.list) ? result.list : []).map(channel => ({
-            id: channel.id,
-            name: channel.name,
-            label: channel.name,
-          }))
-          this.setData({
-            kookChannelOptions: options,
-            filteredKookChannelOptions: filterKookChannelOptions(options, this.data.kookChannelSearch),
-          })
-        })
-        .catch(error => {
-          wx.showToast({ title: error.message || '频道加载失败', icon: 'none' })
-        })
-        .finally(() => {
-          this.setData({ isLoadingKookChannels: false })
-        })
-    },
-
-    handleKookChannelSearchInput(event: WechatMiniprogram.Input) {
-      const keyword = String(event.detail.value || '')
+    handleKookChannelChange(event: WechatMiniprogram.CustomEvent) {
+      const detail = event.detail || {}
       this.setData({
-        kookChannelSearch: keyword,
-        selectedKookChannelId: '',
-        selectedKookChannelName: '',
-        filteredKookChannelOptions: filterKookChannelOptions(this.data.kookChannelOptions, keyword),
-        showKookChannelDropdown: true,
-      })
-    },
-
-    selectKookChannel(event: WechatMiniprogram.TouchEvent) {
-      const id = String(event.currentTarget.dataset.id || '')
-      const selected = this.data.kookChannelOptions.find(item => item.id === id)
-
-      if (!selected) {
-        return
-      }
-
-      this.setData({
-        selectedKookChannelId: selected.id,
-        selectedKookChannelName: selected.name,
-        kookChannelSearch: selected.label,
-        showKookChannelDropdown: false,
-      })
-    },
-
-    clearKookChannel() {
-      this.setData({
-        selectedKookChannelId: '',
-        selectedKookChannelName: '',
-        kookChannelSearch: '',
-        filteredKookChannelOptions: this.data.kookChannelOptions,
-        showKookChannelDropdown: false,
+        selectedKookChannelId: detail.id || '',
+        selectedKookChannelName: detail.name || '',
+        kookChannelSearch: detail.label || detail.name || '',
       })
     },
 
@@ -2147,8 +2054,6 @@ Page({
         selectedKookChannelId: '',
         selectedKookChannelName: '',
         kookChannelSearch: '',
-        filteredKookChannelOptions: this.data.kookChannelOptions,
-        showKookChannelDropdown: false,
         createTitleError: '',
         createLimitError: '',
         createDateError: '',
@@ -2248,9 +2153,6 @@ Page({
         }
 
         this.setData({ showCreateSheet: true })
-        if (!this.data.kookChannelOptions.length) {
-          this.loadKookChannels()
-        }
         this.syncCreateTimeLimit()
         return
       }

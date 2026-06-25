@@ -120,50 +120,55 @@
   />
 
   <view class="sheet-mask" wx:if="{{showEditSheet}}" bindtap="closeEditSheet"></view>
-  <view class="admin-sheet edit-sheet" wx:if="{{showEditSheet}}">
+  <view class="admin-sheet create-sheet edit-sheet" wx:if="{{showEditSheet}}">
     <view class="sheet-handle"></view>
     <view class="sheet-title-row">
       <text class="sheet-title">编辑接龙</text>
       <view class="close-button" bindtap="closeEditSheet">×</view>
     </view>
 
-    <scroll-view class="edit-scroll" scroll-y>
-      <view class="edit-form">
-        <view class="edit-field">
-          <text class="edit-label">标题</text>
-          <input class="admin-input" value="{{editTitle}}" maxlength="30" placeholder="接龙标题" placeholder-class="placeholder" bindinput="handleEditTitleInput" />
+    <scroll-view class="create-scroll" scroll-y>
+      <view class="form">
+        <view class="field">
+          <text class="label">标题</text>
+          <input class="input" value="{{editTitle}}" maxlength="30" placeholder="接龙标题" placeholder-class="placeholder" bindinput="handleEditTitleInput" />
         </view>
-        <view class="edit-field">
-          <text class="edit-label">人数上限</text>
-          <input class="admin-input" type="number" value="{{editLimit}}" placeholder="例如：4" placeholder-class="placeholder" bindinput="handleEditLimitInput" />
+        <view class="field">
+          <text class="label">人数上限</text>
+          <input class="input" type="number" value="{{editLimit}}" placeholder="例如：4" placeholder-class="placeholder" bindinput="handleEditLimitInput" />
         </view>
-        <view class="edit-field">
-          <text class="edit-label">时间类型</text>
+        <view class="field">
+          <text class="label">时间类型</text>
           <view class="schedule-grid">
             <view class="schedule-option {{editScheduleType === 'once' ? 'schedule-active' : ''}}" data-type="once" bindtap="selectEditScheduleType">指定日期</view>
             <view class="schedule-option {{editScheduleType === 'daily' ? 'schedule-active' : ''}}" data-type="daily" bindtap="selectEditScheduleType">每天</view>
             <view class="schedule-option {{editScheduleType === 'range' ? 'schedule-active' : ''}}" data-type="range" bindtap="selectEditScheduleType">日期范围</view>
           </view>
         </view>
-        <view class="edit-field" wx:if="{{editScheduleType === 'once'}}">
-          <text class="edit-label">指定日期</text>
-          <picker-field mode="date" value="{{editDate}}" start="{{todayDate}}" placeholder="选择日期" bindchange="handleEditDateChange"></picker-field>
+        <view class="field" wx:if="{{editScheduleType === 'once'}}">
+          <text class="label">指定日期</text>
+          <picker-field mode="date" theme="light" value="{{editDate}}" start="{{todayDate}}" placeholder="选择日期" bindchange="handleEditDateChange"></picker-field>
         </view>
-        <view class="edit-field" wx:elif="{{editScheduleType === 'range'}}">
-          <text class="edit-label">日期范围</text>
+        <view class="field" wx:elif="{{editScheduleType === 'range'}}">
+          <text class="label">日期范围</text>
           <view class="range-row">
-            <picker-field class="range-input" mode="date" value="{{editStartDate}}" start="{{todayDate}}" placeholder="开始" bindchange="handleEditStartDateChange"></picker-field>
+            <picker-field class="range-input" mode="date" theme="light" value="{{editStartDate}}" start="{{todayDate}}" placeholder="开始" bindchange="handleEditStartDateChange"></picker-field>
             <text class="range-separator">至</text>
-            <picker-field class="range-input" mode="date" value="{{editEndDate}}" start="{{editStartDate || todayDate}}" placeholder="结束" bindchange="handleEditEndDateChange"></picker-field>
+            <picker-field class="range-input" mode="date" theme="light" value="{{editEndDate}}" start="{{editStartDate || todayDate}}" placeholder="结束" bindchange="handleEditEndDateChange"></picker-field>
           </view>
         </view>
-        <view class="edit-field">
-          <text class="edit-label">固定时间</text>
-          <picker-field mode="time" value="{{editTime}}" placeholder="选择时间" bindchange="handleEditTimeChange"></picker-field>
+        <view class="field">
+          <text class="label">固定时间</text>
+          <picker-field mode="time" theme="light" value="{{editTime}}" placeholder="选择时间" bindchange="handleEditTimeChange"></picker-field>
         </view>
-        <view class="edit-field">
-          <text class="edit-label">介绍</text>
-          <textarea class="admin-textarea" value="{{editDescription}}" maxlength="500" placeholder="简单说说怎么玩" placeholder-class="placeholder" bindinput="handleEditDescriptionInput" />
+        <kook-channel-select
+          value="{{editKookChannelId}}"
+          label="{{editKookChannelSearch}}"
+          bindchange="handleEditKookChannelChange"
+        />
+        <view class="field">
+          <text class="label">介绍</text>
+          <textarea class="textarea" value="{{editDescription}}" maxlength="500" placeholder="简单说说怎么玩" placeholder-class="placeholder" bindinput="handleEditDescriptionInput" />
         </view>
       </view>
     </scroll-view>

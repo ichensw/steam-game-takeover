@@ -1,6 +1,7 @@
 {
   "usingComponents": {
     "picker-field": "/components/picker-field/picker-field",
+    "kook-channel-select": "/components/kook-channel-select/kook-channel-select",
     "upload": "/components/upload/upload",
     "profile-sheet": "/components/profile-sheet/profile-sheet"
   },

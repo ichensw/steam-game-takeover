@@ -557,6 +557,9 @@ Page({
     editEndDate: '',
     editTime: '',
     editDescription: '',
+    editKookChannelId: '',
+    editKookChannelName: '',
+    editKookChannelSearch: '',
     todayDate: formatDateForInput(new Date()),
     showReportSheet: false,
     reportUserId: '',
@@ -804,6 +807,9 @@ Page({
       editEndDate: takeover.schedule.type === 'range' ? formatDateForInput(parseDateText(takeover.schedule.endDate) || new Date()) : '',
       editTime: takeover.schedule.time,
       editDescription: takeover.description,
+      editKookChannelId: takeover.kookChannelId,
+      editKookChannelName: takeover.kookChannelName,
+      editKookChannelSearch: takeover.kookChannelName,
     })
   },
 
@@ -856,6 +862,15 @@ Page({
     this.setData({ editTime: event.detail.value as string })
   },
 
+  handleEditKookChannelChange(event: WechatMiniprogram.CustomEvent) {
+    const detail = event.detail || {}
+    this.setData({
+      editKookChannelId: detail.id || '',
+      editKookChannelName: detail.name || '',
+      editKookChannelSearch: detail.label || detail.name || '',
+    })
+  },
+
   buildEditSchedule(): Schedule | null {
     const time = this.data.editTime.trim()
     if (!time) return null
@@ -900,12 +915,12 @@ Page({
     apiRequest<Record<string, any> | null>({
       url: `/api/takeovers/${takeover.id}`,
       method: 'PUT',
-      data: buildTakeoverPayload(title, limit, this.data.editScheduleType, schedule, description, takeover.kookChannelId, takeover.kookChannelName),
+      data: buildTakeoverPayload(title, limit, this.data.editScheduleType, schedule, description, this.data.editKookChannelId, this.data.editKookChannelName),
     })
       .then(result => {
         const editedTakeover = result
           ? normalizeTakeover(result as Record<string, any>)
-          : normalizeTakeover({ ...takeover, title, participantLimit: limit, scheduleType: this.data.editScheduleType, playTime: schedule.time, startDate: schedule.type === 'daily' ? '' : schedule.type === 'range' ? schedule.startDate : schedule.date, endDate: schedule.type === 'range' ? schedule.endDate : undefined, description })
+          : normalizeTakeover({ ...takeover, title, participantLimit: limit, scheduleType: this.data.editScheduleType, playTime: schedule.time, startDate: schedule.type === 'daily' ? '' : schedule.type === 'range' ? schedule.startDate : schedule.date, endDate: schedule.type === 'range' ? schedule.endDate : undefined, description, kookChannelId: this.data.editKookChannelId, kookChannelName: this.data.editKookChannelName })
         this.setData({
           takeover: editedTakeover,
           ...this.getJoinState(editedTakeover),

@@ -1,0 +1,30 @@
+<view class="kook-dropdown-mask" wx:if="{{showDropdown}}" bindtap="closeDropdown"></view>
+<view class="field kook-field" catchtap="noop">
+  <text class="label">KOOK频道</text>
+  <view class="kook-select">
+    <input
+      class="input kook-select-input"
+      value="{{searchText}}"
+      placeholder="搜索并选择 KOOK 语音频道"
+      placeholder-class="placeholder"
+      bindfocus="openDropdown"
+      bindinput="handleSearchInput"
+    />
+    <view class="kook-clear" wx:if="{{value || searchText}}" bindtap="clearChannel">×</view>
+    <view class="kook-dropdown" wx:if="{{showDropdown}}">
+      <view class="kook-empty" wx:if="{{isLoading}}">加载中...</view>
+      <block wx:else>
+        <view
+          class="kook-option {{value === item.id ? 'kook-option-active' : ''}}"
+          wx:for="{{filteredOptions}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="selectChannel"
+        >
+          <text class="kook-option-text">{{item.label}}</text>
+        </view>
+        <view class="kook-empty" wx:if="{{!filteredOptions.length}}">未找到频道</view>
+      </block>
+    </view>
+  </view>
+</view>
