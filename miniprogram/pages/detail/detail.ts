@@ -59,6 +59,9 @@ type Takeover = {
   statusLabel: string
   statusTone: string
   coverImage: string
+  kookChannelId: string
+  kookChannelName: string
+  kookInviteUrl: string
 }
 
 type ApiResponse<T> = {
@@ -412,7 +415,9 @@ const buildTakeoverPayload = (
   limit: number,
   scheduleType: ScheduleType,
   schedule: Schedule,
-  description: string
+  description: string,
+  kookChannelId = '',
+  kookChannelName = ''
 ) => ({
   title,
   participantLimit: limit,
@@ -426,6 +431,8 @@ const buildTakeoverPayload = (
   endDate: schedule.type === 'range' ? schedule.endDate : undefined,
   playTime: schedule.time,
   description,
+  kookChannelId,
+  kookChannelName,
 })
 
 const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
@@ -481,6 +488,9 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     statusLabel,
     statusTone: statusLabel === '已结束' ? 'ended' : statusLabel === '已满员' ? 'purple' : 'orange',
     coverImage: rawTakeover.coverImage || rawTakeover.cover_image || STATUS_COVERS[statusLabel] || CARD_COVERS[numericId % CARD_COVERS.length],
+    kookChannelId: rawTakeover.kookChannelId || rawTakeover.kook_channel_id || '',
+    kookChannelName: rawTakeover.kookChannelName || rawTakeover.kook_channel_name || '',
+    kookInviteUrl: rawTakeover.kookInviteUrl || rawTakeover.kook_invite_url || '',
   }
 }
 
@@ -890,7 +900,7 @@ Page({
     apiRequest<Record<string, any> | null>({
       url: `/api/takeovers/${takeover.id}`,
       method: 'PUT',
-      data: buildTakeoverPayload(title, limit, this.data.editScheduleType, schedule, description),
+      data: buildTakeoverPayload(title, limit, this.data.editScheduleType, schedule, description, takeover.kookChannelId, takeover.kookChannelName),
     })
       .then(result => {
         const editedTakeover = result
@@ -1116,6 +1126,18 @@ Page({
       data: steamId,
       success: () => {
         wx.showToast({ title: '已复制 SteamID', icon: 'success' })
+      },
+    })
+  },
+
+  copyKookInvite() {
+    const inviteURL = this.data.takeover && this.data.takeover.kookInviteUrl
+    if (!inviteURL) return
+
+    wx.setClipboardData({
+      data: inviteURL,
+      success: () => {
+        wx.showToast({ title: '已复制 KOOK 链接', icon: 'success' })
       },
     })
   },

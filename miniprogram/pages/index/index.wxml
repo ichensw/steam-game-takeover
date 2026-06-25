@@ -252,6 +252,14 @@
     </view>
   </view>
 
+  <view class="detail-kook-card" wx:if="{{currentTakeover.kookChannelName && currentTakeover.kookInviteUrl}}">
+    <view class="detail-kook-copy">
+      <text class="detail-kook-title">KOOK频道</text>
+      <text class="detail-kook-name">{{currentTakeover.kookChannelName}}</text>
+    </view>
+    <button class="copy-button detail-kook-button" bindtap="copyKookInvite">复制</button>
+  </view>
+
   <scroll-view class="member-scroll" scroll-y>
     <view class="member-list">
       <view class="member-row {{!isAdmin ? 'member-row-user' : ''}}" wx:for="{{currentTakeover.participants}}" wx:key="steamId">

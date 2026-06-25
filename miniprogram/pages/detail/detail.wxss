@@ -243,6 +243,24 @@ button::after {
   font-weight: 700;
 }
 
+.kook-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108rpx;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.kook-channel-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.kook-copy-button {
+  width: 108rpx;
+}
+
 .info-row {
   display: flex;
   align-items: center;

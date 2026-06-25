@@ -38,6 +38,14 @@
       <text class="description-text">{{takeover.description}}</text>
     </view>
 
+    <view class="description-section kook-section" wx:if="{{takeover && takeover.kookChannelName && takeover.kookInviteUrl}}">
+      <text class="description-title">KOOK频道</text>
+      <view class="kook-link-row">
+        <text class="description-text kook-channel-name">{{takeover.kookChannelName}}</text>
+        <button class="copy-button kook-copy-button" bindtap="copyKookInvite">复制</button>
+      </view>
+    </view>
+
     <view class="admin-actions" wx:if="{{takeover && canManage && takeover.statusLabel !== '已结束'}}">
       <button class="admin-action-button" bindtap="openEditSheet">编辑</button>
       <button class="admin-action-button admin-danger-button" loading="{{isDeleting}}" disabled="{{isDeleting}}" bindtap="deleteAdminTakeover">删除</button>

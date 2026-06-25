@@ -1475,6 +1475,45 @@ button::after {
   font-size: 22rpx;
 }
 
+.detail-kook-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 86rpx;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 22rpx;
+  margin-bottom: 22rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.detail-kook-copy {
+  min-width: 0;
+}
+
+.detail-kook-title {
+  display: block;
+  color: rgba(247, 248, 255, 0.46);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.detail-kook-name {
+  display: block;
+  margin-top: 6rpx;
+  color: #f7f8ff;
+  font-size: 26rpx;
+  line-height: 1.25;
+  font-weight: 800;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.detail-kook-button {
+  width: 86rpx;
+}
+
 .member-list {
   display: flex;
   flex-direction: column;
