@@ -35,7 +35,7 @@
   <view class="field">
     <text class="field-label">SteamID（选填）</text>
     <input class="field-input" value="{{steamId}}" placeholder="输入 SteamID" placeholder-class="placeholder" disabled="{{steamIdLocked}}" bindinput="handleSteamIdInput" />
-    <text class="field-warning">选填，保存后不能自行修改</text>
+    <text class="field-warning">选填，填写后可在个人页修改</text>
     <text class="field-error" wx:if="{{steamIdError}}">{{steamIdError}}</text>
   </view>
 

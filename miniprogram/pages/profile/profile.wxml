@@ -73,7 +73,7 @@
     mode="{{profileMode}}"
     nickname="{{editNickname}}"
     steam-id="{{editSteamId}}"
-    steam-id-locked="{{user.steamId}}"
+    steam-id-locked="{{false}}"
     gender="{{editGender}}"
     avatar-url="{{editAvatarUrl}}"
     male-avatar-url="{{maleAvatarUrl}}"

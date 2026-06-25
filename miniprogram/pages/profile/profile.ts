@@ -319,7 +319,6 @@ Page({
   },
 
   handleSteamIdInput(event: WechatMiniprogram.Input) {
-    if (this.data.user.steamId) return
     this.setData({ editSteamId: String(event.detail.value || '').trim(), editSteamIdError: '' })
   },
 
