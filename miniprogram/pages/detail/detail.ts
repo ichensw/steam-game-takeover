@@ -81,6 +81,16 @@ type UploadResult = {
 }
 
 type UploadResponse = ApiResponse<UploadResult> | UploadResult
+type LoginResult = {
+  token?: string
+  user?: Record<string, any>
+}
+type ProfilePayload = {
+  nickName: string
+  steamId: string
+  gender: Gender
+  avatarUrl: string
+}
 
 const TOKEN_KEY = 'steam_takeover_token'
 const PROFILE_KEY = 'steam_takeover_user'
@@ -176,6 +186,12 @@ const refreshPreviousHome = (page: WechatMiniprogram.Page.Instance<WechatMinipro
 const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
   !!value && typeof value === 'object' && 'success' in value
 
+const apiError = (body: ApiResponse<unknown> | null | undefined, fallback: string) => {
+  const error = new Error((body && (body.message || body.code)) || fallback) as Error & { code?: string }
+  error.code = body ? body.code : undefined
+  return error
+}
+
 const apiRequest = <T>(options: ApiRequestOptions) => {
   return new Promise<T>((resolve, reject) => {
     const token = options.tokenType === 'none' ? '' : getUserToken()
@@ -197,13 +213,13 @@ const apiRequest = <T>(options: ApiRequestOptions) => {
         const body = responseData as ApiResponse<T>
 
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error((body && (body.code || body.message)) || `请求失败：${response.statusCode}`))
+          reject(apiError(body, `请求失败：${response.statusCode}`))
           return
         }
 
         if (isApiResponse<T>(body)) {
           if (body.success === false) {
-            reject(new Error(body.message || body.code || '请求失败'))
+            reject(apiError(body, '请求失败'))
             return
           }
 
@@ -231,6 +247,9 @@ const getGenderAvatar = (gender: Gender | '') => {
 
   return ''
 }
+const isDefaultAvatar = (avatarUrl: string) => avatarUrl === MALE_AVATAR_URL || avatarUrl === FEMALE_AVATAR_URL
+
+const toApiGender = (gender: Gender) => (gender === 'male' ? 1 : 2)
 
 const normalizeGender = (gender: unknown): Gender | '' => {
   if (gender === 'female' || gender === 2 || gender === '2' || gender === '女') {
@@ -503,6 +522,20 @@ Page({
     isCreator: false,
     canJoin: false,
     canManage: false,
+    isAuthorizing: false,
+    showProfileSheet: false,
+    nickName: '',
+    steamId: '',
+    steamIdLocked: false,
+    gender: '' as Gender | '',
+    avatarUrl: '',
+    nickNameError: '',
+    steamIdError: '',
+    genderError: '',
+    isUploadingAvatar: false,
+    isSaving: false,
+    maleAvatarUrl: MALE_AVATAR_URL,
+    femaleAvatarUrl: FEMALE_AVATAR_URL,
     isSavingAdmin: false,
     isDeleting: false,
     showEditSheet: false,
@@ -542,8 +575,66 @@ Page({
       return
     }
 
-    this.loadCurrentProfile()
-    this.loadTakeover()
+    this.bootstrap()
+  },
+
+  bootstrap() {
+    if (getUserToken()) {
+      this.loadCurrentProfile()
+      this.loadTakeover()
+      return
+    }
+
+    this.setData({ isAuthorizing: true })
+    wx.login({
+      success: ({ code }) => {
+        if (!code) {
+          this.setData({ isAuthorizing: false })
+          wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+          return
+        }
+        apiRequest<LoginResult>({
+          url: '/api/auth/wx-login',
+          method: 'POST',
+          data: { code },
+          tokenType: 'none',
+        })
+          .then(result => {
+            if (result.token) wx.setStorageSync(TOKEN_KEY, result.token)
+            const profile = normalizeUserProfile(result.user)
+            if (profile) {
+              this.applyProfile(profile)
+            } else {
+              wx.removeStorageSync(PROFILE_KEY)
+              this.openProfileSheet()
+            }
+            this.loadTakeover()
+          })
+          .catch(error => {
+            wx.showToast({ title: error.message || '登录失败', icon: 'none' })
+          })
+          .finally(() => {
+            this.setData({ isAuthorizing: false })
+          })
+      },
+      fail: () => {
+        this.setData({ isAuthorizing: false })
+        wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+      },
+    })
+  },
+
+  applyProfile(profile: UserProfile) {
+    wx.setStorageSync(PROFILE_KEY, profile)
+    getApp<IAppOption>().globalData.userProfile = profile
+    this.setData({
+      nickName: profile.nickName,
+      steamId: profile.steamId,
+      steamIdLocked: !!profile.steamId,
+      gender: profile.gender,
+      avatarUrl: profile.avatarUrl,
+      canManage: profile.isAdmin || this.data.canManage,
+    })
   },
 
   loadCurrentProfile() {
@@ -553,19 +644,117 @@ Page({
       .then(result => {
         const profile = normalizeUserProfile(result)
 
-        if (profile) {
-          wx.setStorageSync(PROFILE_KEY, profile)
-        }
-
-        if (profile && profile.isAdmin) {
-          this.setData({ canManage: true })
-        }
+        if (profile) this.applyProfile(profile)
+        else this.openProfileSheet()
 
         if (profile && this.data.takeover) {
           this.setData({ takeover: this.withReportState(this.data.takeover) })
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!getStoredProfile()) this.openProfileSheet()
+      })
+  },
+
+  openProfileSheet() {
+    this.setData({
+      showProfileSheet: true,
+      nickNameError: '',
+      steamIdError: '',
+      genderError: '',
+      avatarUrl: this.data.avatarUrl || getGenderAvatar(this.data.gender),
+    })
+  },
+
+  closeProfileSheet() {
+    this.setData({ showProfileSheet: false })
+  },
+
+  ensureProfileReady() {
+    if (getStoredProfile()) return true
+    this.openProfileSheet()
+    wx.showToast({ title: '请先补充资料', icon: 'none' })
+    return false
+  },
+
+  selectGender(event: WechatMiniprogram.TouchEvent & { detail?: { gender?: Gender } }) {
+    const gender = ((event.detail && event.detail.gender) || event.currentTarget.dataset.gender) as Gender
+    if (gender !== 'male' && gender !== 'female') return
+    this.setData({
+      gender,
+      avatarUrl: !this.data.avatarUrl || isDefaultAvatar(this.data.avatarUrl) ? getGenderAvatar(gender) : this.data.avatarUrl,
+      genderError: '',
+    })
+  },
+
+  handleNickNameInput(event: WechatMiniprogram.Input | WechatMiniprogram.CustomEvent<{ value?: string }>) {
+    this.setData({ nickName: String((event.detail as { value?: string }).value || '').trim(), nickNameError: '' })
+  },
+
+  handleSteamIdInput(event: WechatMiniprogram.Input | WechatMiniprogram.CustomEvent<{ value?: string }>) {
+    if (this.data.steamIdLocked) return
+    this.setData({ steamId: String((event.detail as { value?: string }).value || '').trim(), steamIdError: '' })
+  },
+
+  chooseAvatar() {
+    if (this.data.isUploadingAvatar) return
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: result => {
+        const filePath = result.tempFiles[0] && result.tempFiles[0].tempFilePath
+        if (!filePath) return
+        this.setData({ isUploadingAvatar: true })
+        uploadImage(filePath)
+          .then(url => this.setData({ avatarUrl: url }))
+          .catch(error => wx.showToast({ title: error.message || '上传失败', icon: 'none' }))
+          .finally(() => this.setData({ isUploadingAvatar: false }))
+      },
+    })
+  },
+
+  validateSteamId(steamId: string) {
+    if (!steamId) return '请输入 SteamID'
+    return /^[0-9A-Za-z_:.-]{3,32}$/.test(steamId) ? '' : 'SteamID 可填写 3-32 位数字、字母或 _ : . -'
+  },
+
+  saveProfile() {
+    if (this.data.isSaving) return
+    const nickName = this.data.nickName.trim()
+    const steamId = this.data.steamId.trim()
+    const gender = this.data.gender
+    const nickNameError = nickName ? '' : '请输入昵称'
+    const steamIdError = this.validateSteamId(steamId)
+    const genderError = gender ? '' : '请选择性别'
+    if (nickNameError || steamIdError || genderError) {
+      this.setData({ nickNameError, steamIdError, genderError })
+      return
+    }
+    const payload: ProfilePayload = {
+      nickName,
+      steamId,
+      gender: gender as Gender,
+      avatarUrl: this.data.avatarUrl || getGenderAvatar(gender as Gender),
+    }
+    this.setData({ isSaving: true })
+    apiRequest<Record<string, any>>({
+      url: '/api/me/profile',
+      method: 'PUT',
+      data: {
+        nickName: payload.nickName,
+        steamId: payload.steamId,
+        gender: toApiGender(payload.gender),
+        avatarUrl: payload.avatarUrl,
+      },
+    })
+      .then(result => {
+        this.applyProfile(normalizeUserProfile(result) || payload)
+        this.setData({ showProfileSheet: false })
+        this.loadTakeover()
+      })
+      .catch(error => wx.showToast({ title: error.message || '保存失败', icon: 'none' }))
+      .finally(() => this.setData({ isSaving: false }))
   },
 
   onShareAppMessage() {
@@ -692,7 +881,7 @@ Page({
     const limit = Number(this.data.editLimit)
     const schedule = this.buildEditSchedule()
 
-    if (!title || !description || !Number.isInteger(limit) || limit <= 0 || limit > 99 || !schedule) {
+    if (!title || title.length > 30 || !description || description.length > 500 || !Number.isInteger(limit) || limit <= 0 || limit > 99 || !schedule) {
       wx.showToast({ title: '请完整填写接龙信息', icon: 'none' })
       return
     }
@@ -824,6 +1013,10 @@ Page({
       return
     }
 
+    if (!this.ensureProfileReady()) {
+      return
+    }
+
     if (this.data.hasJoined) {
       this.leaveTakeover()
       return
@@ -857,6 +1050,11 @@ Page({
         this.loadTakeover()
       })
       .catch(error => {
+        if (error.code === 'PROFILE_INCOMPLETE') {
+          this.openProfileSheet()
+          wx.showToast({ title: '请先补充资料', icon: 'none' })
+          return
+        }
         wx.showToast({ title: error.message || '加入失败', icon: 'none' })
       })
       .finally(() => {
@@ -923,6 +1121,10 @@ Page({
   },
 
   openReportSheet(event: WechatMiniprogram.TouchEvent) {
+    if (!this.ensureProfileReady()) {
+      return
+    }
+
     const userId = event.currentTarget.dataset.userid as string
     const openid = event.currentTarget.dataset.openid as string
     const nickname = event.currentTarget.dataset.nickname as string
@@ -1025,6 +1227,10 @@ Page({
   },
 
   submitReport() {
+    if (!this.ensureProfileReady()) {
+      return
+    }
+
     const takeover = this.data.takeover
     const content = this.data.reportContent.trim()
     const reportUserKey = this.data.reportUserKey

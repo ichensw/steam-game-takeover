@@ -251,6 +251,7 @@ const getGenderAvatar = (gender: Gender | '') => {
 
   return ''
 }
+const isDefaultAvatar = (avatarUrl: string) => avatarUrl === MALE_AVATAR_URL || avatarUrl === FEMALE_AVATAR_URL
 
 const toApiGender = (gender: Gender) => {
   return gender === 'male' ? 1 : 2
@@ -1487,7 +1488,7 @@ Page({
 
       this.setData({
         gender,
-        avatarUrl: this.data.avatarUrl || getGenderAvatar(gender),
+        avatarUrl: !this.data.avatarUrl || isDefaultAvatar(this.data.avatarUrl) ? getGenderAvatar(gender) : this.data.avatarUrl,
         genderError: '',
       })
     },
@@ -1897,11 +1898,11 @@ Page({
       const time = this.data.createTime.trim()
       const scheduleType = this.data.createScheduleType
 
-      const createTitleError = title ? '' : '请输入标题'
+      const createTitleError = title ? (title.length > 30 ? '标题不能超过 30 个字' : '') : '请输入标题'
       const createLimitError =
         Number.isInteger(limit) && limit > 0 && limit <= 99 ? '' : '请输入 1-99 的人数'
       const createTimeError = time ? this.validateCreateTime(time) : '请输入时间'
-      const createDescriptionError = description ? '' : '请输入介绍'
+      const createDescriptionError = description ? (description.length > 500 ? '介绍不能超过 500 个字' : '') : '请输入介绍'
       const createDateError = this.validateCreateDate()
 
       if (

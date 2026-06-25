@@ -1,7 +1,8 @@
 {
   "usingComponents": {
     "picker-field": "/components/picker-field/picker-field",
-    "upload": "/components/upload/upload"
+    "upload": "/components/upload/upload",
+    "profile-sheet": "/components/profile-sheet/profile-sheet"
   },
   "navigationStyle": "custom"
 }

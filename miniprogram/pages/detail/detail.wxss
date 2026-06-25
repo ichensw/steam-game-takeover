@@ -118,6 +118,26 @@ button::after {
   opacity: 0.96;
 }
 
+.host-badge {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  max-width: 260rpx;
+  height: 50rpx;
+  padding: 0 18rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #7c4dff 0%, #9f5cff 100%);
+  color: #ffffff;
+  font-size: 24rpx;
+  line-height: 50rpx;
+  font-weight: 900;
+  box-shadow: 0 10rpx 22rpx rgba(124, 76, 255, 0.28);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .game-badge,
 .status-badge {
   position: relative;
@@ -184,19 +204,6 @@ button::after {
   font-weight: 900;
 }
 
-.hero-desc {
-  position: relative;
-  z-index: 1;
-  width: 58%;
-  margin-top: 12rpx;
-  padding-bottom: 16rpx;
-  border-bottom: 2rpx dashed rgba(172, 113, 226, 0.2);
-  color: #4f286e;
-  font-size: 27rpx;
-  line-height: 1.45;
-  font-weight: 600;
-}
-
 .info-panel {
   position: relative;
   z-index: 1;
@@ -205,6 +212,35 @@ button::after {
   flex-direction: column;
   gap: 12rpx;
   margin-top: 18rpx;
+}
+
+.description-section {
+  position: relative;
+  z-index: 1;
+  margin-top: 24rpx;
+  padding: 24rpx 28rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.72);
+  border-radius: 30rpx;
+  background: rgba(244, 231, 250, 0.94);
+  box-shadow: 0 18rpx 34rpx rgba(34, 7, 110, 0.24), 0 0 22rpx rgba(255, 112, 220, 0.28);
+  box-sizing: border-box;
+}
+
+.description-title {
+  display: block;
+  color: #351556;
+  font-size: 30rpx;
+  line-height: 40rpx;
+  font-weight: 900;
+}
+
+.description-text {
+  display: block;
+  margin-top: 12rpx;
+  color: #4f286e;
+  font-size: 26rpx;
+  line-height: 42rpx;
+  font-weight: 700;
 }
 
 .info-row {
@@ -229,6 +265,31 @@ button::after {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.hero-avatar-stack {
+  position: relative;
+  z-index: 2;
+  width: 60%;
+  display: flex;
+  align-items: center;
+  margin-top: 24rpx;
+  padding-left: 4rpx;
+}
+
+.hero-avatar {
+  width: 58rpx;
+  height: 58rpx;
+  margin-left: -14rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: #ffffff;
+  box-shadow: 0 8rpx 18rpx rgba(53, 21, 86, 0.18);
+}
+
+.hero-avatar:first-child {
+  margin-left: 0;
 }
 
 .tag-list {
@@ -498,26 +559,14 @@ button::after {
 }
 
 .hero-title,
-.hero-desc,
 .info-panel {
   width: 54%;
 }
 
 .hero-title {
-  margin-top: 22rpx;
+  margin-top: 26rpx;
   font-size: 44rpx;
   line-height: 1.14;
-}
-
-.hero-desc {
-  margin-top: 14rpx;
-  padding-bottom: 0;
-  border-bottom: 0;
-  font-size: 26rpx;
-  line-height: 34rpx;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .info-panel {
@@ -582,12 +631,15 @@ button::after {
 
 /* Detail readability fixes */
 .hero-card {
-  min-height: 380rpx;
+  min-height: 390rpx;
 }
 
 .hero-title,
-.hero-desc,
 .info-panel {
+  width: 52%;
+}
+
+.hero-avatar-stack {
   width: 52%;
 }
 

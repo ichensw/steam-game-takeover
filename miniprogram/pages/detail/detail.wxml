@@ -13,9 +13,9 @@
 
     <view class="hero-card" wx:if="{{takeover}}">
       <image class="hero-cover" src="{{takeover.coverImage}}" mode="aspectFit"></image>
+      <view class="host-badge">🎮 {{takeover.host || '兔兔窝'}}</view>
       <view class="status-badge status-{{takeover.statusTone}}">{{takeover.statusLabel}}</view>
       <text class="hero-title">{{takeover.title}}</text>
-      <text class="hero-desc">{{takeover.description}}</text>
 
       <view class="info-panel">
         <view class="info-row">
@@ -23,14 +23,19 @@
           <text class="info-value">{{takeover.scheduleText}}</text>
         </view>
         <view class="info-row">
-          <text class="info-label">发起人</text>
-          <text class="info-value">{{takeover.host || '兔兔窝'}}</text>
-        </view>
-        <view class="info-row">
           <text class="info-label">参与人数</text>
           <text class="info-value">{{takeover.joined}} / {{takeover.limit}}</text>
         </view>
       </view>
+
+      <view class="hero-avatar-stack" wx:if="{{takeover.participantAvatars.length}}">
+        <image class="hero-avatar" wx:for="{{takeover.participantAvatars}}" wx:key="*this" src="{{item}}" mode="aspectFill"></image>
+      </view>
+    </view>
+
+    <view class="description-section" wx:if="{{takeover && takeover.description}}">
+      <text class="description-title">队伍介绍</text>
+      <text class="description-text">{{takeover.description}}</text>
     </view>
 
     <view class="admin-actions" wx:if="{{takeover && canManage && takeover.statusLabel !== '已结束'}}">
@@ -60,7 +65,7 @@
       </view>
     </view>
 
-    <view class="empty-state" wx:if="{{!takeover && !isLoading}}">
+    <view class="empty-state" wx:if="{{!takeover && !isLoading && !isAuthorizing}}">
       <text>队伍不存在或已结束</text>
     </view>
   </view>
@@ -76,12 +81,35 @@
     </button>
   </view>
 
-  <view class="global-loading" wx:if="{{isLoading}}">
+  <view class="global-loading" wx:if="{{isLoading || isAuthorizing}}">
     <view class="loading-card">
       <view class="loading-spinner"></view>
       <text class="loading-text">加载中</text>
     </view>
   </view>
+
+  <profile-sheet
+    visible="{{showProfileSheet}}"
+    mode="complete"
+    nickname="{{nickName}}"
+    steam-id="{{steamId}}"
+    steam-id-locked="{{steamIdLocked}}"
+    gender="{{gender}}"
+    avatar-url="{{avatarUrl}}"
+    male-avatar-url="{{maleAvatarUrl}}"
+    female-avatar-url="{{femaleAvatarUrl}}"
+    nickname-error="{{nickNameError}}"
+    steam-id-error="{{steamIdError}}"
+    gender-error="{{genderError}}"
+    is-uploading="{{isUploadingAvatar}}"
+    is-saving="{{isSaving}}"
+    bindclose="closeProfileSheet"
+    bindchooseavatar="chooseAvatar"
+    bindselectgender="selectGender"
+    bindnicknameinput="handleNickNameInput"
+    bindsteamidinput="handleSteamIdInput"
+    bindsave="saveProfile"
+  />
 
   <view class="sheet-mask" wx:if="{{showEditSheet}}" bindtap="closeEditSheet"></view>
   <view class="admin-sheet edit-sheet" wx:if="{{showEditSheet}}">
@@ -95,7 +123,7 @@
       <view class="edit-form">
         <view class="edit-field">
           <text class="edit-label">标题</text>
-          <input class="admin-input" value="{{editTitle}}" placeholder="接龙标题" placeholder-class="placeholder" bindinput="handleEditTitleInput" />
+          <input class="admin-input" value="{{editTitle}}" maxlength="30" placeholder="接龙标题" placeholder-class="placeholder" bindinput="handleEditTitleInput" />
         </view>
         <view class="edit-field">
           <text class="edit-label">人数上限</text>
@@ -127,7 +155,7 @@
         </view>
         <view class="edit-field">
           <text class="edit-label">介绍</text>
-          <textarea class="admin-textarea" value="{{editDescription}}" maxlength="80" placeholder="简单说说怎么玩" placeholder-class="placeholder" bindinput="handleEditDescriptionInput" />
+          <textarea class="admin-textarea" value="{{editDescription}}" maxlength="500" placeholder="简单说说怎么玩" placeholder-class="placeholder" bindinput="handleEditDescriptionInput" />
         </view>
       </view>
     </scroll-view>

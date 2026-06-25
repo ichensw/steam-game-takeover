@@ -133,6 +133,7 @@
           value="{{createTitle}}"
           placeholder="例如：周末合作游戏局"
           placeholder-class="placeholder"
+          maxlength="30"
           bindinput="handleCreateTitleInput"
         />
         <text class="error" wx:if="{{createTitleError}}">{{createTitleError}}</text>
@@ -189,7 +190,7 @@
           value="{{createDescription}}"
           placeholder="简单说说怎么玩、适合什么人"
           placeholder-class="placeholder"
-          maxlength="80"
+          maxlength="500"
           bindinput="handleCreateDescriptionInput"
         />
         <text class="error" wx:if="{{createDescriptionError}}">{{createDescriptionError}}</text>
