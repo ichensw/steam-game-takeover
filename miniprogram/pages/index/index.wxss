@@ -1294,6 +1294,85 @@ button::after {
   font-weight: 800;
 }
 
+.kook-field {
+  position: relative;
+  z-index: 3;
+}
+
+.kook-select {
+  position: relative;
+}
+
+.kook-select-input {
+  padding-right: 72rpx;
+}
+
+.kook-clear {
+  position: absolute;
+  top: 13rpx;
+  right: 16rpx;
+  z-index: 5;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(124, 60, 255, 0.1);
+  color: rgba(53, 21, 86, 0.64);
+  font-size: 34rpx;
+  font-weight: 800;
+  line-height: 56rpx;
+}
+
+.kook-dropdown {
+  position: absolute;
+  top: 92rpx;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 360rpx;
+  overflow-y: auto;
+  border: 2rpx solid rgba(124, 60, 255, 0.14);
+  border-radius: 22rpx;
+  background: #ffffff;
+  box-shadow: 0 18rpx 42rpx rgba(53, 21, 86, 0.16);
+}
+
+.kook-option {
+  min-height: 76rpx;
+  padding: 18rpx 24rpx;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  border-bottom: 1rpx solid rgba(124, 60, 255, 0.08);
+}
+
+.kook-option:last-child {
+  border-bottom: 0;
+}
+
+.kook-option-active {
+  background: rgba(255, 239, 252, 0.96);
+}
+
+.kook-option-text {
+  color: #351556;
+  font-size: 25rpx;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.kook-empty {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(53, 21, 86, 0.48);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
 .create-sheet .error {
   color: #ff4d8d;
   font-size: 22rpx;

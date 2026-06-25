@@ -59,6 +59,19 @@ type Takeover = {
   statusLabel: string
   statusTone: string
   coverImage: string
+  kookChannelId: string
+  kookChannelName: string
+}
+
+type KookChannelNode = {
+  id: string
+  name: string
+}
+
+type KookChannelOption = {
+  id: string
+  name: string
+  label: string
 }
 
 const PAGE_SIZE = 5
@@ -378,6 +391,8 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
     creatorCreditScore,
     creatorCreditStatus: rawTakeover.creatorCreditStatus || rawTakeover.creator_credit_status || getCreditStatus(creatorCreditScore),
+    kookChannelId: rawTakeover.kookChannelId || rawTakeover.kook_channel_id || '',
+    kookChannelName: rawTakeover.kookChannelName || rawTakeover.kook_channel_name || '',
     ...buildTakeoverDisplayFields(String(rawTakeover.id), joined, limit, scheduleType, rawTakeover),
   }
 }
@@ -405,7 +420,9 @@ const buildTakeoverPayload = (
   limit: number,
   scheduleType: ScheduleType,
   schedule: Schedule,
-  description: string
+  description: string,
+  kookChannelId = '',
+  kookChannelName = ''
 ) => {
   return {
     title,
@@ -420,7 +437,18 @@ const buildTakeoverPayload = (
     endDate: schedule.type === 'range' ? schedule.endDate : undefined,
     playTime: schedule.time,
     description,
+    kookChannelId,
+    kookChannelName,
   }
+}
+
+const filterKookChannelOptions = (options: KookChannelOption[], keyword: string) => {
+  const normalizedKeyword = keyword.trim().toLowerCase()
+  if (!normalizedKeyword) {
+    return options
+  }
+
+  return options.filter(item => item.label.toLowerCase().includes(normalizedKeyword))
 }
 
 function parseDateText(dateText: string) {
@@ -568,10 +596,15 @@ const buildTakeoverDisplayFields = (
 }
 
 const createMockTakeover = (
-  takeover: Omit<Takeover, 'scheduleText' | 'participantAvatars' | 'categoryLabel' | 'cardTags' | 'statusLabel' | 'statusTone' | 'coverImage'>
+  takeover: Omit<Takeover, 'scheduleText' | 'participantAvatars' | 'categoryLabel' | 'cardTags' | 'statusLabel' | 'statusTone' | 'coverImage' | 'kookChannelId' | 'kookChannelName'> & {
+    kookChannelId?: string
+    kookChannelName?: string
+  }
 ): Takeover => {
   return {
     ...takeover,
+    kookChannelId: takeover.kookChannelId || '',
+    kookChannelName: takeover.kookChannelName || '',
     ...buildTakeoverDisplayFields(takeover.id, takeover.joined, takeover.limit, takeover.schedule.type),
     scheduleText: formatSchedule(takeover.schedule),
     participantAvatars: takeover.participants.map(participant => participant.avatarUrl).slice(0, 5),
@@ -958,6 +991,13 @@ Page({
     createEndDate: '',
     createTime: '',
     createDescription: '',
+    selectedKookChannelId: '',
+    selectedKookChannelName: '',
+    kookChannelSearch: '',
+    kookChannelOptions: [] as KookChannelOption[],
+    filteredKookChannelOptions: [] as KookChannelOption[],
+    showKookChannelDropdown: false,
+    isLoadingKookChannels: false,
     editingTakeoverId: '',
     createTitleError: '',
     createLimitError: '',
@@ -1750,6 +1790,7 @@ Page({
       this.setData({
         showCreateSheet: false,
         editingTakeoverId: '',
+        showKookChannelDropdown: false,
       })
     },
 
@@ -1818,6 +1859,10 @@ Page({
     },
 
     fillEditTakeover(takeover: Takeover) {
+      if (!this.data.kookChannelOptions.length) {
+        this.loadKookChannels()
+      }
+
       this.setData({
         showCreateSheet: true,
         editingTakeoverId: takeover.id,
@@ -1831,6 +1876,10 @@ Page({
           takeover.schedule.type === 'range' ? normalizeDateForPicker(takeover.schedule.endDate) : '',
         createTime: takeover.schedule.time,
         createDescription: takeover.description,
+        selectedKookChannelId: takeover.kookChannelId,
+        selectedKookChannelName: takeover.kookChannelName,
+        kookChannelSearch: takeover.kookChannelName,
+        showKookChannelDropdown: false,
         createTitleError: '',
         createLimitError: '',
         createDateError: '',
@@ -1838,6 +1887,78 @@ Page({
         createDescriptionError: '',
       })
       this.syncCreateTimeLimit()
+    },
+
+    openKookChannelDropdown() {
+      this.setData({ showKookChannelDropdown: true })
+      if (!this.data.kookChannelOptions.length) {
+        this.loadKookChannels()
+      }
+    },
+
+    loadKookChannels() {
+      if (this.data.isLoadingKookChannels) {
+        return
+      }
+
+      this.setData({ isLoadingKookChannels: true })
+      apiRequest<{ list?: KookChannelNode[] }>({
+        url: '/api/kook/channels/all?type=2',
+      })
+        .then(result => {
+          const options = (result && Array.isArray(result.list) ? result.list : []).map(channel => ({
+            id: channel.id,
+            name: channel.name,
+            label: channel.name,
+          }))
+          this.setData({
+            kookChannelOptions: options,
+            filteredKookChannelOptions: filterKookChannelOptions(options, this.data.kookChannelSearch),
+          })
+        })
+        .catch(error => {
+          wx.showToast({ title: error.message || '频道加载失败', icon: 'none' })
+        })
+        .finally(() => {
+          this.setData({ isLoadingKookChannels: false })
+        })
+    },
+
+    handleKookChannelSearchInput(event: WechatMiniprogram.Input) {
+      const keyword = String(event.detail.value || '')
+      this.setData({
+        kookChannelSearch: keyword,
+        selectedKookChannelId: '',
+        selectedKookChannelName: '',
+        filteredKookChannelOptions: filterKookChannelOptions(this.data.kookChannelOptions, keyword),
+        showKookChannelDropdown: true,
+      })
+    },
+
+    selectKookChannel(event: WechatMiniprogram.TouchEvent) {
+      const id = String(event.currentTarget.dataset.id || '')
+      const selected = this.data.kookChannelOptions.find(item => item.id === id)
+
+      if (!selected) {
+        return
+      }
+
+      this.setData({
+        selectedKookChannelId: selected.id,
+        selectedKookChannelName: selected.name,
+        kookChannelSearch: selected.label,
+        showKookChannelDropdown: false,
+      })
+    },
+
+    clearKookChannel() {
+      this.setData({
+        selectedKookChannelId: '',
+        selectedKookChannelName: '',
+        kookChannelSearch: '',
+        filteredKookChannelOptions: this.data.kookChannelOptions,
+        showKookChannelDropdown: false,
+      })
     },
 
     deleteTakeover(event: WechatMiniprogram.TouchEvent) {
@@ -1925,7 +2046,15 @@ Page({
       const editingTakeover = allTakeovers.find(takeover => takeover.id === this.data.editingTakeoverId)
 
       const schedule = this.buildCreateSchedule(scheduleType, time)
-      const payload = buildTakeoverPayload(title, limit, scheduleType, schedule, description)
+      const payload = buildTakeoverPayload(
+        title,
+        limit,
+        scheduleType,
+        schedule,
+        description,
+        this.data.selectedKookChannelId,
+        this.data.selectedKookChannelName
+      )
 
       if (editingTakeover) {
         this.setData({ isAuthorizing: true, isSubmittingTakeover: true })
@@ -1941,6 +2070,8 @@ Page({
               limit,
               schedule,
               description,
+              kookChannelId: this.data.selectedKookChannelId,
+              kookChannelName: this.data.selectedKookChannelName,
             })
 
             allTakeovers = allTakeovers.map(takeover =>
@@ -2009,6 +2140,11 @@ Page({
         createEndDate: '',
         createTime: '',
         createDescription: '',
+        selectedKookChannelId: '',
+        selectedKookChannelName: '',
+        kookChannelSearch: '',
+        filteredKookChannelOptions: this.data.kookChannelOptions,
+        showKookChannelDropdown: false,
         createTitleError: '',
         createLimitError: '',
         createDateError: '',
@@ -2108,6 +2244,9 @@ Page({
         }
 
         this.setData({ showCreateSheet: true })
+        if (!this.data.kookChannelOptions.length) {
+          this.loadKookChannels()
+        }
         this.syncCreateTimeLimit()
         return
       }

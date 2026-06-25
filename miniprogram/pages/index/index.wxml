@@ -183,6 +183,36 @@
         <text class="error" wx:if="{{createTimeError}}">{{createTimeError}}</text>
       </view>
 
+      <view class="field kook-field">
+        <text class="label">KOOK频道</text>
+        <view class="kook-select">
+          <input
+            class="input kook-select-input"
+            value="{{kookChannelSearch}}"
+            placeholder="搜索并选择 KOOK 语音频道"
+            placeholder-class="placeholder"
+            bindfocus="openKookChannelDropdown"
+            bindinput="handleKookChannelSearchInput"
+          />
+          <view class="kook-clear" wx:if="{{selectedKookChannelId || kookChannelSearch}}" bindtap="clearKookChannel">×</view>
+          <view class="kook-dropdown" wx:if="{{showKookChannelDropdown}}">
+            <view class="kook-empty" wx:if="{{isLoadingKookChannels}}">加载中...</view>
+            <block wx:else>
+              <view
+                class="kook-option {{selectedKookChannelId === item.id ? 'kook-option-active' : ''}}"
+                wx:for="{{filteredKookChannelOptions}}"
+                wx:key="id"
+                data-id="{{item.id}}"
+                bindtap="selectKookChannel"
+              >
+                <text class="kook-option-text">{{item.label}}</text>
+              </view>
+              <view class="kook-empty" wx:if="{{!filteredKookChannelOptions.length}}">未找到频道</view>
+            </block>
+          </view>
+        </view>
+      </view>
+
       <view class="field">
         <text class="label">介绍</text>
         <textarea
