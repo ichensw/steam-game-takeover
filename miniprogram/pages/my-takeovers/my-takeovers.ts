@@ -47,6 +47,9 @@ const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
 const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
   !!value && typeof value === 'object' && 'success' in value
 
+const friendlyNetworkError = (message?: string) =>
+  message && !message.includes('request:fail') && !message.includes('ERR_') ? message : '网络异常，请稍后重试'
+
 const apiRequest = <T>(url: string) =>
   new Promise<T>((resolve, reject) => {
     wx.request<WechatMiniprogram.IAnyObject>({
@@ -62,7 +65,7 @@ const apiRequest = <T>(url: string) =>
         }
         resolve(isApiResponse<T>(body) ? (body.data as T) : (response.data as T))
       },
-      fail: error => reject(new Error(error.errMsg || '网络请求失败')),
+      fail: error => reject(new Error(friendlyNetworkError(error.errMsg))),
     })
   })
 
