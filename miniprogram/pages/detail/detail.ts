@@ -129,6 +129,9 @@ const parseUploadResponse = (value: string) => {
   }
 }
 
+const friendlyNetworkError = (message?: string, fallback = '网络异常，请稍后重试') =>
+  message && !message.includes('request:fail') && !message.includes('ERR_') ? message : fallback
+
 const uploadImage = (filePath: string) => {
   return new Promise<string>((resolve, reject) => {
     const token = getUserToken()
@@ -162,7 +165,7 @@ const uploadImage = (filePath: string) => {
         resolve(data.url)
       },
       fail: error => {
-        reject(new Error(error.errMsg || '图片上传失败'))
+        reject(new Error(friendlyNetworkError(error.errMsg, '图片上传失败，请稍后重试')))
       },
     })
   })
@@ -233,7 +236,7 @@ const apiRequest = <T>(options: ApiRequestOptions) => {
         resolve(responseData as T)
       },
       fail: error => {
-        reject(new Error(error.errMsg || '网络请求失败'))
+        reject(new Error(friendlyNetworkError(error.errMsg)))
       },
     })
   })
