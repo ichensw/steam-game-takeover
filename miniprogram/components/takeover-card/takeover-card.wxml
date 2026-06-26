@@ -28,7 +28,7 @@
       <view class="meta-icon">
         <image class="meta-icon-image" src="/assets/icon-members.svg" mode="aspectFit"></image>
       </view>
-      <text class="meta-value">{{takeover.joined || takeover.joinedCount}} / {{takeover.limit || takeover.participantLimit}}</text>
+      <text class="meta-value">{{takeover.joinedCount !== undefined ? takeover.joinedCount : takeover.joined}} / {{takeover.participantLimit || takeover.limit}}</text>
     </view>
   </view>
 

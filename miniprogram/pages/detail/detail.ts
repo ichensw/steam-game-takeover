@@ -1022,19 +1022,15 @@ Page({
     const hasJoined = takeover.hasJoined
     const isFull = takeover.limit > 0 && takeover.joined >= takeover.limit
 
-    if (takeover.isCreator) {
-      return { hasJoined: true, isCreator: true, joinButtonText: '', canJoin: false }
-    }
-
     if (hasJoined) {
-      return { hasJoined: true, isCreator: false, joinButtonText: '退出队伍', canJoin: true }
+      return { hasJoined: true, isCreator: takeover.isCreator, joinButtonText: '退出队伍', canJoin: true }
     }
 
     if (isFull) {
-      return { hasJoined: false, isCreator: false, joinButtonText: '队伍已满员', canJoin: false }
+      return { hasJoined: false, isCreator: takeover.isCreator, joinButtonText: '队伍已满员', canJoin: false }
     }
 
-    return { hasJoined: false, isCreator: false, joinButtonText: '加入队伍', canJoin: true }
+    return { hasJoined: false, isCreator: takeover.isCreator, joinButtonText: '加入队伍', canJoin: true }
   },
 
   joinTakeover() {

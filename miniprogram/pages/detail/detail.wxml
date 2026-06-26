@@ -78,7 +78,7 @@
     </view>
   </view>
 
-  <view class="bottom-action" wx:if="{{takeover && !isCreator}}">
+  <view class="bottom-action" wx:if="{{takeover}}">
     <button
       class="join-button {{hasJoined ? 'leave-button' : ''}} {{!canJoin ? 'join-button-disabled' : ''}}"
       loading="{{isJoining || isLeaving}}"
