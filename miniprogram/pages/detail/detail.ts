@@ -503,14 +503,12 @@ const getStoredProfile = (): UserProfile | null => {
   if (
     userProfile &&
     typeof userProfile.nickName === 'string' &&
-    typeof userProfile.steamId === 'string' &&
     (userProfile.gender === 'male' || userProfile.gender === 'female') &&
-    userProfile.nickName &&
-    userProfile.steamId
+    userProfile.nickName
   ) {
     return {
       nickName: userProfile.nickName,
-      steamId: userProfile.steamId,
+      steamId: typeof userProfile.steamId === 'string' ? userProfile.steamId : '',
       gender: userProfile.gender,
       avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
       isAdmin: !!userProfile.isAdmin,
