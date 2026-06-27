@@ -2153,7 +2153,7 @@ Page({
       wx.setClipboardData({
         data: inviteURL,
         success: () => {
-          wx.showToast({ title: '已复制 KOOK 链接', icon: 'success' })
+          wx.showToast({ title: '已复制频道链接，用浏览器打开即可加入 KOOK 频道。', icon: 'none' })
         },
       })
     },
