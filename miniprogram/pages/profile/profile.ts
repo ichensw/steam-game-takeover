@@ -1,15 +1,9 @@
+import { apiRequest, getUserToken, uploadImage } from '../../utils/api'
 import { enableShareMenu, HOME_SHARE_TITLE } from '../../utils/share'
 
 {
 type Gender = 'male' | 'female'
 type ProfileMode = 'complete' | 'edit'
-
-type ApiResponse<T> = {
-  success?: boolean
-  code?: string
-  message?: string
-  data?: T
-}
 
 type User = {
   nickName?: string
@@ -44,18 +38,6 @@ type Summary = {
   recent?: RecentTakeover[]
 }
 
-type ApiRequestOptions = {
-  url: string
-  method?: 'GET' | 'PUT'
-  data?: WechatMiniprogram.IAnyObject
-}
-
-type UploadResult = {
-  url?: string
-}
-
-const TOKEN_KEY = 'steam_takeover_token'
-const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
 const PROFILE_BG_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/uploads/2026/06/220-1782216063196384700-57523733eb66.png'
@@ -66,73 +48,6 @@ const STATUS_COVERS: Record<string, string> = {
   已结束: '/assets/takeover-card-pending.png',
 }
 
-const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
-
-const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
-  !!value && typeof value === 'object' && 'success' in value
-
-const parseUploadResponse = (value: string) => {
-  try {
-    return JSON.parse(value) as ApiResponse<UploadResult> | UploadResult
-  } catch {
-    return null
-  }
-}
-
-const friendlyNetworkError = (message?: string, fallback = '网络异常，请稍后重试') =>
-  message && !message.includes('request:fail') && !message.includes('ERR_') ? message : fallback
-
-const apiRequest = <T>(options: string | ApiRequestOptions) =>
-  new Promise<T>((resolve, reject) => {
-    const requestOptions = typeof options === 'string' ? { url: options } : options
-    wx.request<WechatMiniprogram.IAnyObject>({
-      url: `${API_BASE_URL}${requestOptions.url}`,
-      method: requestOptions.method || 'GET',
-      data: requestOptions.data,
-      header: {
-        'content-type': 'application/json',
-        Authorization: `Bearer ${getUserToken()}`,
-      },
-      success: response => {
-        const responseData = response.data as T | ApiResponse<T>
-        const body = responseData as ApiResponse<T>
-        if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error((body && (body.message || body.code)) || `请求失败：${response.statusCode}`))
-          return
-        }
-        if (isApiResponse<T>(body)) {
-          if (body.success === false) {
-            reject(new Error(body.message || body.code || '请求失败'))
-            return
-          }
-          resolve((body.data || null) as T)
-          return
-        }
-        resolve(responseData as T)
-      },
-      fail: error => reject(new Error(friendlyNetworkError(error.errMsg))),
-    })
-  })
-
-const uploadImage = (filePath: string) =>
-  new Promise<string>((resolve, reject) => {
-    wx.uploadFile({
-      url: `${API_BASE_URL}/api/uploads/image`,
-      filePath,
-      name: 'file',
-      header: { Authorization: `Bearer ${getUserToken()}` },
-      success: response => {
-        const body = parseUploadResponse(response.data)
-        const data = body && isApiResponse<UploadResult>(body) ? body.data : body
-        if (response.statusCode < 200 || response.statusCode >= 300 || !(data && data.url)) {
-          reject(new Error(body && isApiResponse<UploadResult>(body) ? body.message || body.code || '上传失败' : '上传失败'))
-          return
-        }
-        resolve(data.url)
-      },
-      fail: error => reject(new Error(friendlyNetworkError(error.errMsg, '上传失败，请稍后重试'))),
-    })
-  })
 
 const toApiGender = (gender: Gender) => (gender === 'male' ? 1 : 2)
 

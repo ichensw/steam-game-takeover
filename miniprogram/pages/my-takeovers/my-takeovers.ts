@@ -1,11 +1,5 @@
+import { apiRequest } from '../../utils/api'
 import { enableShareMenu, HOME_SHARE_TITLE } from '../../utils/share'
-
-type ApiResponse<T> = {
-  success?: boolean
-  code?: string
-  message?: string
-  data?: T
-}
 
 type Takeover = {
   id: number
@@ -29,8 +23,6 @@ type TakeoverPage = {
 }
 
 const PAGE_SIZE = 10
-const TOKEN_KEY = 'steam_takeover_token'
-const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 const PROFILE_BG_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/uploads/2026/06/220-1782216063196384700-57523733eb66.png'
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
 const STATUS_COVERS: Record<string, string> = {
@@ -42,32 +34,6 @@ const STATUS_COVERS: Record<string, string> = {
 
 let searchTimer = 0
 
-const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
-
-const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
-  !!value && typeof value === 'object' && 'success' in value
-
-const friendlyNetworkError = (message?: string) =>
-  message && !message.includes('request:fail') && !message.includes('ERR_') ? message : '网络异常，请稍后重试'
-
-const apiRequest = <T>(url: string) =>
-  new Promise<T>((resolve, reject) => {
-    wx.request<WechatMiniprogram.IAnyObject>({
-      url: `${API_BASE_URL}${url}`,
-      header: {
-        Authorization: `Bearer ${getUserToken()}`,
-      },
-      success: response => {
-        const body = response.data as ApiResponse<T>
-        if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error(body.message || body.code || `请求失败：${response.statusCode}`))
-          return
-        }
-        resolve(isApiResponse<T>(body) ? (body.data as T) : (response.data as T))
-      },
-      fail: error => reject(new Error(friendlyNetworkError(error.errMsg))),
-    })
-  })
 
 const buildQuery = (params: Record<string, string | number | undefined>) => {
   const query = Object.keys(params)

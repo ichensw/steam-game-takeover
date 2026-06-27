@@ -1,5 +1,6 @@
 export {}
 
+import { apiRequest, getUserToken, uploadImage } from '../../utils/api'
 import { enableShareMenu, HOME_SHARE_TITLE } from '../../utils/share'
 
 type Gender = 'male' | 'female'
@@ -64,26 +65,6 @@ type Takeover = {
   kookInviteUrl: string
 }
 
-type ApiResponse<T> = {
-  success?: boolean
-  code?: string
-  message?: string
-  data?: T
-}
-
-type ApiRequestOptions = {
-  url: string
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-  data?: WechatMiniprogram.IAnyObject
-  tokenType?: 'user' | 'none'
-}
-
-type UploadResult = {
-  url?: string
-  objectKey?: string
-}
-
-type UploadResponse = ApiResponse<UploadResult> | UploadResult
 type LoginResult = {
   token?: string
   user?: Record<string, any>
@@ -98,7 +79,6 @@ type ProfilePayload = {
 const TOKEN_KEY = 'steam_takeover_token'
 const PROFILE_KEY = 'steam_takeover_user'
 const HOME_REFRESH_KEY = 'steam_takeover_home_needs_refresh'
-const API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
 const CARD_COVERS = [
@@ -119,57 +99,6 @@ const getCreditStatus = (score: number) => (score <= 50 ? 'disabled' : score < 7
 const canJoinWithCredit = (score?: number) => score === undefined || score >= 70
 const isTrue = (value: unknown) => value === true || value === 1 || value === '1' || value === 'true'
 
-const getUserToken = () => wx.getStorageSync(TOKEN_KEY) as string
-
-const parseUploadResponse = (value: string) => {
-  try {
-    return JSON.parse(value) as UploadResponse
-  } catch {
-    return null
-  }
-}
-
-const friendlyNetworkError = (message?: string, fallback = '网络异常，请稍后重试') =>
-  message && !message.includes('request:fail') && !message.includes('ERR_') ? message : fallback
-
-const uploadImage = (filePath: string) => {
-  return new Promise<string>((resolve, reject) => {
-    const token = getUserToken()
-    if (!token) {
-      reject(new Error('请先登录'))
-      return
-    }
-
-    wx.uploadFile({
-      url: `${API_BASE_URL}/api/uploads/image`,
-      filePath,
-      name: 'file',
-      header: {
-        Authorization: `Bearer ${token}`,
-      },
-      success: response => {
-        const body = parseUploadResponse(response.data)
-        const uploadError =
-          body && isApiResponse<UploadResult>(body) ? body.message || body.code : ''
-        if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new Error(uploadError || `上传失败：${response.statusCode}`))
-          return
-        }
-
-        const data = body && isApiResponse<UploadResult>(body) ? body.data : body
-        if (!data || !data.url) {
-          reject(new Error('上传结果异常'))
-          return
-        }
-
-        resolve(data.url)
-      },
-      fail: error => {
-        reject(new Error(friendlyNetworkError(error.errMsg, '图片上传失败，请稍后重试')))
-      },
-    })
-  })
-}
 
 const refreshPreviousHome = (page: WechatMiniprogram.Page.Instance<WechatMiniprogram.IAnyObject, WechatMiniprogram.IAnyObject>) => {
   const eventChannel = page.getOpenerEventChannel()
@@ -189,58 +118,6 @@ const refreshPreviousHome = (page: WechatMiniprogram.Page.Instance<WechatMinipro
   }
 }
 
-const isApiResponse = <T>(value: unknown): value is ApiResponse<T> =>
-  !!value && typeof value === 'object' && 'success' in value
-
-const apiError = (body: ApiResponse<unknown> | null | undefined, fallback: string) => {
-  const error = new Error((body && (body.message || body.code)) || fallback) as Error & { code?: string }
-  error.code = body ? body.code : undefined
-  return error
-}
-
-const apiRequest = <T>(options: ApiRequestOptions) => {
-  return new Promise<T>((resolve, reject) => {
-    const token = options.tokenType === 'none' ? '' : getUserToken()
-    const header: WechatMiniprogram.IAnyObject = {
-      'content-type': 'application/json',
-    }
-
-    if (token) {
-      header.Authorization = `Bearer ${token}`
-    }
-
-    wx.request<WechatMiniprogram.IAnyObject>({
-      url: `${API_BASE_URL}${options.url}`,
-      method: options.method || 'GET',
-      data: options.data,
-      header,
-      success: response => {
-        const responseData = response.data as T | ApiResponse<T>
-        const body = responseData as ApiResponse<T>
-
-        if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(apiError(body, `请求失败：${response.statusCode}`))
-          return
-        }
-
-        if (isApiResponse<T>(body)) {
-          if (body.success === false) {
-            reject(apiError(body, '请求失败'))
-            return
-          }
-
-          resolve((body.data || null) as T)
-          return
-        }
-
-        resolve(responseData as T)
-      },
-      fail: error => {
-        reject(new Error(friendlyNetworkError(error.errMsg)))
-      },
-    })
-  })
-}
 
 const getGenderAvatar = (gender: Gender | '') => {
   if (gender === 'female') {
