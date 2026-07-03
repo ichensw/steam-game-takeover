@@ -21,7 +21,7 @@ type UploadResponse = ApiResponse<UploadResult> | UploadResult
 
 const TOKEN_KEY = 'steam_takeover_token'
 const API_BASE_URL_KEY = 'steam_takeover_api_base_url'
-const DEFAULT_API_BASE_URL = 'https://debun.xyz/miniprogram-api'
+const DEFAULT_API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
 
 let apiBaseUrl = (wx.getStorageSync(API_BASE_URL_KEY) as string) || DEFAULT_API_BASE_URL
 let configPromise: Promise<string> | null = null
