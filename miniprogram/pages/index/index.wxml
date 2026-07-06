@@ -201,6 +201,7 @@
         />
         <text class="error" wx:if="{{createDescriptionError}}">{{createDescriptionError}}</text>
       </view>
+
     </view>
   </scroll-view>
 
@@ -238,7 +239,7 @@
 
   <scroll-view class="member-scroll" scroll-y>
     <view class="member-list">
-      <view class="member-row {{!isAdmin ? 'member-row-user' : ''}}" wx:for="{{currentTakeover.participants}}" wx:key="steamId">
+      <view class="member-row {{!isAdmin ? 'member-row-user' : ''}}" wx:for="{{currentTakeover.participants}}" wx:key="userId">
         <image class="detail-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
         <view class="member-info">
           <view class="member-name-line">
@@ -246,13 +247,40 @@
             <text class="credit-badge credit-{{item.creditStatus}}">{{item.creditScore}}</text>
           </view>
           <view class="member-steam-line">
-            <text class="member-steam">SteamID：{{item.steamId}}</text>
+            <text class="member-steam">SteamID：{{item.steamId || '未填写'}}</text>
             <button class="copy-button" wx:if="{{!isAdmin && item.steamId}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
           </view>
+          <text class="member-remark" wx:if="{{item.remark}}">备注：{{item.remark}}</text>
+          <button class="remark-edit-button" wx:if="{{item.isSelf}}" data-remark="{{item.remark}}" bindtap="openMemberRemarkSheet">{{item.remark ? '编辑备注' : '填写备注'}}</button>
         </view>
       </view>
     </view>
   </scroll-view>
 
   <button class="detail-join-button" wx:if="{{showDetailJoinButton}}" bindtap="joinCurrentTakeover">加入接龙</button>
+</view>
+
+<view class="sheet-mask" wx:if="{{showRemarkSheet}}" bindtap="closeMemberRemarkSheet"></view>
+<view class="profile-sheet create-sheet remark-sheet" wx:if="{{showRemarkSheet}}">
+  <view class="sheet-handle"></view>
+  <view class="sheet-title-row">
+    <view class="remark-title-copy">
+      <text class="sheet-title">{{remarkMode === 'join' ? '加入备注' : '编辑备注'}}</text>
+      <text class="remark-subtitle">特殊情况可以提前告诉队友</text>
+    </view>
+    <view class="close-button" bindtap="closeMemberRemarkSheet">×</view>
+  </view>
+  <view class="form">
+    <view class="field remark-field">
+      <textarea class="textarea remark-textarea" value="{{memberRemark}}" maxlength="100" placeholder="晚到 10 分钟 / 只玩一局 / 麦克风不方便" placeholder-class="placeholder" bindinput="handleMemberRemarkInput" />
+      <text class="remark-count">{{memberRemark.length}}/100</text>
+    </view>
+  </view>
+  <view class="remark-actions">
+    <button class="remark-secondary-button" wx:if="{{remarkMode === 'join'}}" disabled="{{isSavingRemark || isAuthorizing}}" bindtap="joinWithoutRemark">直接加入</button>
+    <button class="remark-secondary-button" wx:else disabled="{{isSavingRemark || isAuthorizing}}" bindtap="closeMemberRemarkSheet">取消</button>
+    <button class="remark-primary-button" loading="{{isSavingRemark || isAuthorizing}}" disabled="{{isSavingRemark || isAuthorizing}}" bindtap="submitMemberRemark">
+      {{isSavingRemark || isAuthorizing ? '保存中...' : remarkMode === 'join' ? '确认加入' : '保存备注'}}
+    </button>
+  </view>
 </view>

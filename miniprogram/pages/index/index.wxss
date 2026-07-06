@@ -1311,6 +1311,88 @@ button::after {
   box-shadow: none;
 }
 
+.remark-title-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.remark-subtitle {
+  color: rgba(53, 21, 86, 0.52);
+  font-size: 23rpx;
+  line-height: 30rpx;
+  font-weight: 700;
+}
+
+.remark-textarea {
+  min-height: 190rpx;
+  padding: 24rpx 24rpx 50rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    inset 0 2rpx 8rpx rgba(80, 35, 120, 0.05),
+    0 8rpx 20rpx rgba(80, 35, 120, 0.06);
+}
+
+.remark-count {
+  position: absolute;
+  right: 22rpx;
+  bottom: 16rpx;
+  color: rgba(53, 21, 86, 0.42);
+  font-size: 22rpx;
+  line-height: 30rpx;
+  font-weight: 700;
+}
+
+.remark-field {
+  position: relative;
+}
+
+.remark-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.remark-secondary-button,
+.remark-primary-button {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: 78rpx;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 999rpx;
+  font-size: 27rpx;
+  line-height: 78rpx;
+  font-weight: 900;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.remark-secondary-button {
+  background: rgba(255, 255, 255, 0.72);
+  color: #7c3cff;
+  box-shadow: inset 0 0 0 2rpx rgba(140, 92, 255, 0.14);
+}
+
+.create-sheet .remark-primary-button {
+  margin: 0;
+  border-radius: 999rpx;
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, #ff86d1 0%, #d85cff 52%, #8a5cff 100%);
+  box-shadow:
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.48),
+    inset 0 -8rpx 14rpx rgba(73, 33, 145, 0.22),
+    0 14rpx 24rpx rgba(143, 82, 255, 0.2);
+}
+
 .card-menu-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1531,6 +1613,31 @@ button::after {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.member-remark {
+  display: block;
+  margin-top: 8rpx;
+  color: rgba(156, 245, 232, 0.78);
+  font-size: 23rpx;
+  line-height: 32rpx;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.remark-edit-button {
+  width: auto;
+  height: 42rpx;
+  margin: 10rpx 0 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: transparent;
+  color: #9cf5e8;
+  font-size: 23rpx;
+  line-height: 42rpx;
+  font-weight: 800;
 }
 
 .member-steam-line .copy-button {
@@ -2037,6 +2144,39 @@ page {
   font-size: 44rpx;
   line-height: 52rpx;
   font-weight: 900;
+}
+
+.create-dock {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, #ffb15f 0%, #ff63bd 54%, #9a5cff 100%);
+  text-shadow: 0 2rpx 4rpx rgba(111, 45, 154, 0.2);
+  box-shadow:
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.5),
+    inset 0 -8rpx 14rpx rgba(92, 40, 154, 0.22),
+    0 18rpx 34rpx rgba(255, 80, 177, 0.32),
+    0 6rpx 0 rgba(132, 63, 204, 0.2);
+}
+
+.create-dock-plus {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #ffe8f8 100%);
+  box-shadow:
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.9),
+    0 6rpx 12rpx rgba(137, 73, 196, 0.2);
+}
+
+.create-sheet .sheet-submit {
+  border-radius: 999rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, #ff86d1 0%, #d85cff 52%, #8a5cff 100%);
+  text-shadow: 0 2rpx 4rpx rgba(88, 36, 145, 0.18);
+  box-shadow:
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.48),
+    inset 0 -8rpx 14rpx rgba(73, 33, 145, 0.22),
+    0 16rpx 28rpx rgba(143, 82, 255, 0.24),
+    0 5rpx 0 rgba(112, 57, 203, 0.18);
 }
 
 .profile-float {

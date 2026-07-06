@@ -27,6 +27,7 @@ type UserProfile = {
   openid?: string
   nickName: string
   steamId: string
+  remark?: string
   avatarUrl: string
   gender: Gender
   isAdmin?: boolean
@@ -59,6 +60,7 @@ type Takeover = {
   cardTags: string[]
   statusLabel: string
   statusTone: string
+  takeoverState: number
   coverImage: string
   kookChannelId: string
   kookChannelName: string
@@ -155,6 +157,7 @@ const normalizeParticipant = (rawParticipant: Record<string, any>): Participant 
     openid: rawParticipant.openid ? String(rawParticipant.openid) : undefined,
     nickName: rawParticipant.nickName || rawParticipant.nickname || '玩家',
     steamId: rawParticipant.steamId || rawParticipant.steam_id || '',
+    remark: normalizeRemark(rawParticipant.remark),
     gender,
     avatarUrl: rawParticipant.avatarUrl || rawParticipant.avatar_url || getGenderAvatar(gender),
     creditScore,
@@ -166,6 +169,11 @@ const normalizeParticipant = (rawParticipant: Record<string, any>): Participant 
 
 const getUserKey = (user: { userId?: string; openid?: string } | null | undefined) =>
   user ? user.userId || user.openid || '' : ''
+
+const normalizeRemark = (value: unknown) => Array.from(String(value || '').trim()).slice(0, 100).join('')
+
+const normalizeTakeoverState = (rawTakeover: Record<string, any>) =>
+  Number(rawTakeover.takeoverState || rawTakeover.takeover_state || 1) === 2 ? 2 : 1
 
 const normalizeUserProfile = (rawProfile: Record<string, any> | null | undefined): UserProfile | null => {
   if (!rawProfile) {
@@ -186,6 +194,7 @@ const normalizeUserProfile = (rawProfile: Record<string, any> | null | undefined
     openid: rawProfile.openid ? String(rawProfile.openid) : undefined,
     nickName,
     steamId,
+    remark: '',
     gender,
     avatarUrl: rawProfile.avatarUrl || rawProfile.avatar_url || getGenderAvatar(gender),
     isAdmin: !!(rawProfile.isAdmin || rawProfile.is_admin),
@@ -343,6 +352,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
             time: playTime,
           }
   const statusLabel = rawTakeover.statusLabel || rawTakeover.status_label || (joined >= limit && limit > 0 ? '已满员' : '招募中')
+  const takeoverState = normalizeTakeoverState(rawTakeover)
 
   return {
     id: String(rawTakeover.id),
@@ -366,7 +376,8 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
       joined >= limit && limit > 0 ? '满员' : '开黑',
     ],
     statusLabel,
-    statusTone: statusLabel === '已结束' ? 'ended' : statusLabel === '已满员' ? 'purple' : 'orange',
+    statusTone: takeoverState === 2 ? 'ended' : statusLabel === '已满员' ? 'purple' : 'orange',
+    takeoverState,
     coverImage: rawTakeover.coverImage || rawTakeover.cover_image || STATUS_COVERS[statusLabel] || CARD_COVERS[numericId % CARD_COVERS.length],
     kookChannelId: rawTakeover.kookChannelId || rawTakeover.kook_channel_id || '',
     kookChannelName: rawTakeover.kookChannelName || rawTakeover.kook_channel_name || '',
@@ -386,6 +397,7 @@ const getStoredProfile = (): UserProfile | null => {
     return {
       nickName: userProfile.nickName,
       steamId: typeof userProfile.steamId === 'string' ? userProfile.steamId : '',
+      remark: '',
       gender: userProfile.gender,
       avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
       isAdmin: !!userProfile.isAdmin,
@@ -449,6 +461,11 @@ Page({
     reportedUserKeys: [] as string[],
     isUploadingReportImage: false,
     isSubmittingReport: false,
+    showRemarkSheet: false,
+    remarkMode: 'join' as 'join' | 'edit',
+    memberRemark: '',
+    memberRemarkError: '',
+    isSavingRemark: false,
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -670,7 +687,7 @@ Page({
     if (!this.data.canManage || !takeover) {
       return
     }
-    if (takeover.statusLabel === '已结束') {
+    if (takeover.takeoverState === 2) {
       wx.showToast({ title: '已结束的接龙不可编辑', icon: 'none' })
       return
     }
@@ -774,7 +791,7 @@ Page({
   saveAdminEdit() {
     const takeover = this.data.takeover
     if (!this.data.canManage || !takeover || this.data.isSavingAdmin) return
-    if (takeover.statusLabel === '已结束') {
+    if (takeover.takeoverState === 2) {
       wx.showToast({ title: '已结束的接龙不可编辑', icon: 'none' })
       return
     }
@@ -821,7 +838,7 @@ Page({
   deleteAdminTakeover() {
     const takeover = this.data.takeover
     if (!this.data.canManage || !takeover || this.data.isDeleting) return
-    if (takeover.statusLabel === '已结束') {
+    if (takeover.takeoverState === 2) {
       wx.showToast({ title: '已结束的接龙不可删除', icon: 'none' })
       return
     }
@@ -931,10 +948,24 @@ Page({
       return
     }
 
-    this.setData({ isJoining: true })
+    this.setData({
+      showRemarkSheet: true,
+      remarkMode: 'join',
+      memberRemark: '',
+      memberRemarkError: '',
+    })
+  },
+
+  submitJoinRemark(remark: string) {
+    if (!this.data.takeover || this.data.isJoining) {
+      return
+    }
+
+    this.setData({ isJoining: true, isSavingRemark: true })
     apiRequest<Record<string, any> | { hasJoined?: boolean; joinedCount?: number }>({
       url: `/api/takeovers/${this.data.takeover.id}/join`,
       method: 'POST',
+      data: { remark },
     })
       .then(result => {
         if (this.data.takeover && result && typeof (result as Record<string, any>).joinedCount === 'number') {
@@ -948,6 +979,7 @@ Page({
             ...this.getJoinState(updatedTakeover),
           })
         }
+        this.setData({ showRemarkSheet: false, memberRemark: '', memberRemarkError: '' })
         wx.showToast({ title: '已加入', icon: 'success' })
         refreshPreviousHome(this)
         this.loadTakeover()
@@ -961,7 +993,80 @@ Page({
         wx.showToast({ title: error.message || '加入失败', icon: 'none' })
       })
       .finally(() => {
-        this.setData({ isJoining: false })
+        this.setData({ isJoining: false, isSavingRemark: false })
+      })
+  },
+
+  openMemberRemarkSheet(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.takeover && this.data.takeover.takeoverState === 2) {
+      wx.showToast({ title: '已结束的接龙不可编辑备注', icon: 'none' })
+      return
+    }
+    const remark = event.currentTarget.dataset.remark as string
+    this.setData({
+      showRemarkSheet: true,
+      remarkMode: 'edit',
+      memberRemark: normalizeRemark(remark),
+      memberRemarkError: '',
+    })
+  },
+
+  closeMemberRemarkSheet() {
+    if (this.data.isSavingRemark || this.data.isJoining) return
+    this.setData({ showRemarkSheet: false, memberRemark: '', memberRemarkError: '' })
+  },
+
+  joinWithoutRemark() {
+    if (this.data.isSavingRemark || this.data.isJoining) return
+    this.submitJoinRemark('')
+  },
+
+  handleMemberRemarkInput(event: WechatMiniprogram.Input) {
+    this.setData({
+      memberRemark: normalizeRemark(event.detail.value),
+      memberRemarkError: '',
+    })
+  },
+
+  submitMemberRemark() {
+    const remark = normalizeRemark(this.data.memberRemark)
+    if (this.data.remarkMode === 'join') {
+      this.submitJoinRemark(remark)
+      return
+    }
+
+    const takeover = this.data.takeover
+    if (!takeover || this.data.isSavingRemark) {
+      return
+    }
+
+    this.setData({ isSavingRemark: true })
+    apiRequest<{ remark?: string }>({
+      url: `/api/takeovers/${takeover.id}/member-remark`,
+      method: 'PUT',
+      data: { remark },
+    })
+      .then(result => {
+        const nextRemark = normalizeRemark(result && typeof result.remark === 'string' ? result.remark : remark)
+        const updatedTakeover = {
+          ...takeover,
+          participants: takeover.participants.map(participant =>
+            participant.isSelf ? { ...participant, remark: nextRemark } : participant
+          ),
+        }
+        this.setData({
+          takeover: updatedTakeover,
+          showRemarkSheet: false,
+          memberRemark: '',
+          memberRemarkError: '',
+        })
+        wx.showToast({ title: '已保存', icon: 'success' })
+      })
+      .catch(error => {
+        wx.showToast({ title: error.message || '保存失败', icon: 'none' })
+      })
+      .finally(() => {
+        this.setData({ isSavingRemark: false })
       })
   },
 
@@ -1048,6 +1153,10 @@ Page({
     const takeover = this.data.takeover
     const targetUser = takeover && index >= 0 ? takeover.participants[index] : null
 
+    if (!takeover || takeover.takeoverState !== 2) {
+      wx.showToast({ title: '接龙结束后才可以举报', icon: 'none' })
+      return
+    }
     if (!reportUserKey) {
       return
     }
@@ -1059,7 +1168,7 @@ Page({
       wx.showToast({ title: '不能举报自己', icon: 'none' })
       return
     }
-    if (!targetUser || !targetUser.steamId) {
+    if (!targetUser) {
       return
     }
     if (this.data.reportedUserKeys.indexOf(reportUserKey) >= 0) {

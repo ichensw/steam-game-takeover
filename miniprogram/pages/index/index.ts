@@ -31,11 +31,13 @@ type UserProfile = {
   openid?: string
   nickName: string
   steamId: string
+  remark?: string
   avatarUrl: string
   gender: Gender
   isAdmin?: boolean
   creditScore?: number
   creditStatus?: string
+  isSelf?: boolean
 }
 
 type Participant = UserProfile
@@ -59,6 +61,7 @@ type Takeover = {
   cardTags: string[]
   statusLabel: string
   statusTone: string
+  takeoverState: number
   coverImage: string
   kookChannelId: string
   kookChannelName: string
@@ -131,6 +134,9 @@ const getGenderAvatar = (gender: Gender | '') => {
   return ''
 }
 const isDefaultAvatar = (avatarUrl: string) => avatarUrl === MALE_AVATAR_URL || avatarUrl === FEMALE_AVATAR_URL
+const isTrue = (value: unknown) => value === true || value === 1 || value === '1' || value === 'true'
+const normalizeTakeoverState = (rawTakeover: Record<string, any>) =>
+  Number(rawTakeover.takeoverState || rawTakeover.takeover_state || 1) === 2 ? 2 : 1
 
 const toApiGender = (gender: Gender) => {
   return gender === 'male' ? 1 : 2
@@ -167,13 +173,17 @@ const normalizeUserProfile = (rawUser: Record<string, any> | null | undefined): 
     openid: rawUser.openid ? String(rawUser.openid) : undefined,
     nickName,
     steamId,
+    remark: normalizeRemark(rawUser.remark),
     gender,
     avatarUrl: rawUser.avatarUrl || rawUser.avatar_url || getGenderAvatar(gender),
     isAdmin: !!(rawUser.isAdmin || rawUser.is_admin),
     creditScore,
     creditStatus: rawUser.creditStatus || rawUser.credit_status || getCreditStatus(creditScore),
+    isSelf: isTrue(rawUser.isSelf) || isTrue(rawUser.is_self),
   }
 }
+
+const normalizeRemark = (value: unknown) => Array.from(String(value || '').trim()).slice(0, 100).join('')
 
 const normalizeParticipant = (rawParticipant: Record<string, any>): Participant => {
   const normalized = normalizeUserProfile(rawParticipant)
@@ -189,6 +199,7 @@ const normalizeParticipant = (rawParticipant: Record<string, any>): Participant 
     openid: rawParticipant.openid ? String(rawParticipant.openid) : undefined,
     nickName: rawParticipant.nickName || rawParticipant.nickname || '玩家',
     steamId: rawParticipant.steamId || rawParticipant.steam_id || '',
+    remark: normalizeRemark(rawParticipant.remark),
     gender,
     avatarUrl: rawParticipant.avatarUrl || rawParticipant.avatar_url || getGenderAvatar(gender),
     creditScore,
@@ -225,6 +236,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     : []
   const joined = Number(rawTakeover.joinedCount || rawTakeover.joined_count || rawTakeover.joined || participants.length || 0)
   const limit = Number(rawTakeover.participantLimit || rawTakeover.participant_limit || rawTakeover.limit || 0)
+  const takeoverState = normalizeTakeoverState(rawTakeover)
   const creatorCreditScore = Number(rawTakeover.creatorCreditScore !== undefined && rawTakeover.creatorCreditScore !== null ? rawTakeover.creatorCreditScore : rawTakeover.creator_credit_score !== undefined && rawTakeover.creator_credit_score !== null ? rawTakeover.creator_credit_score : 100)
   const schedule: Schedule =
     scheduleType === 'daily'
@@ -255,6 +267,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 5),
     participants,
     hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
+    takeoverState,
     creatorCreditScore,
     creatorCreditStatus: rawTakeover.creatorCreditStatus || rawTakeover.creator_credit_status || getCreditStatus(creatorCreditScore),
     kookChannelId: rawTakeover.kookChannelId || rawTakeover.kook_channel_id || '',
@@ -454,7 +467,7 @@ const buildTakeoverDisplayFields = (
 }
 
 const createMockTakeover = (
-  takeover: Omit<Takeover, 'scheduleText' | 'participantAvatars' | 'categoryLabel' | 'cardTags' | 'statusLabel' | 'statusTone' | 'coverImage' | 'kookChannelId' | 'kookChannelName' | 'kookInviteUrl'> & {
+  takeover: Omit<Takeover, 'scheduleText' | 'participantAvatars' | 'categoryLabel' | 'cardTags' | 'statusLabel' | 'statusTone' | 'takeoverState' | 'coverImage' | 'kookChannelId' | 'kookChannelName' | 'kookInviteUrl'> & {
     kookChannelId?: string
     kookChannelName?: string
     kookInviteUrl?: string
@@ -465,6 +478,7 @@ const createMockTakeover = (
     kookChannelId: takeover.kookChannelId || '',
     kookChannelName: takeover.kookChannelName || '',
     kookInviteUrl: takeover.kookInviteUrl || '',
+    takeoverState: 1,
     ...buildTakeoverDisplayFields(takeover.id, takeover.joined, takeover.limit, takeover.schedule.type),
     scheduleText: formatSchedule(takeover.schedule),
     participantAvatars: takeover.participants.map(participant => participant.avatarUrl).slice(0, 5),
@@ -765,6 +779,7 @@ const getStoredProfile = (): UserProfile | null => {
       return {
         nickName: userProfile.nickName,
         steamId: typeof userProfile.steamId === 'string' ? userProfile.steamId : '',
+        remark: '',
         gender: userProfile.gender,
         avatarUrl: userProfile.avatarUrl || getGenderAvatar(userProfile.gender),
         isAdmin: !!userProfile.isAdmin,
@@ -824,10 +839,14 @@ Page({
     showProfileSheet: false,
     showCreateSheet: false,
     showDetailSheet: false,
+    showRemarkSheet: false,
     showCardMenuSheet: false,
     currentTakeover: null as Takeover | null,
     detailJoinStatusText: '未加入',
     showDetailJoinButton: false,
+    remarkMode: 'join' as 'join' | 'edit',
+    memberRemark: '',
+    isSavingRemark: false,
     managingTakeover: null as Takeover | null,
     pendingAction: '' as PendingAction | '',
     pendingTakeoverId: '',
@@ -2105,7 +2124,7 @@ Page({
         return '未加入'
       }
 
-      return takeover.hasJoined || takeover.participants.some(participant => participant.steamId === userProfile.steamId)
+      return takeover.hasJoined || (!!userProfile.steamId && takeover.participants.some(participant => participant.steamId === userProfile.steamId))
         ? '已加入'
         : '未加入'
     },
@@ -2126,7 +2145,80 @@ Page({
         return
       }
 
-      this.markTakeoverJoined(takeover.id)
+      this.setData({
+        showRemarkSheet: true,
+        remarkMode: 'join',
+        memberRemark: '',
+      })
+    },
+
+    openMemberRemarkSheet(event: WechatMiniprogram.TouchEvent) {
+      const remark = event.currentTarget.dataset.remark as string
+      this.setData({
+        showRemarkSheet: true,
+        remarkMode: 'edit',
+        memberRemark: normalizeRemark(remark),
+      })
+    },
+
+    closeMemberRemarkSheet() {
+      if (this.data.isSavingRemark || this.data.isAuthorizing) return
+      this.setData({ showRemarkSheet: false, memberRemark: '' })
+    },
+
+    joinWithoutRemark() {
+      const takeover = this.data.currentTakeover
+      if (!takeover || this.data.isSavingRemark || this.data.isAuthorizing) return
+      this.markTakeoverJoined(takeover.id, '')
+    },
+
+    handleMemberRemarkInput(event: WechatMiniprogram.Input) {
+      this.setData({ memberRemark: normalizeRemark(event.detail.value) })
+    },
+
+    submitMemberRemark() {
+      const takeover = this.data.currentTakeover
+      const remark = normalizeRemark(this.data.memberRemark)
+      if (!takeover || this.data.isSavingRemark || this.data.isAuthorizing) {
+        return
+      }
+
+      if (this.data.remarkMode === 'join') {
+        this.markTakeoverJoined(takeover.id, remark)
+        return
+      }
+
+      this.setData({ isSavingRemark: true })
+      apiRequest<{ remark?: string }>({
+        url: `/api/takeovers/${takeover.id}/member-remark`,
+        method: 'PUT',
+        data: { remark },
+      })
+        .then(result => {
+          const nextRemark = normalizeRemark(result && typeof result.remark === 'string' ? result.remark : remark)
+          const currentTakeover = this.data.currentTakeover
+          if (!currentTakeover) return
+          const updatedTakeover = {
+            ...currentTakeover,
+            participants: currentTakeover.participants.map(participant =>
+              participant.isSelf ? { ...participant, remark: nextRemark } : participant
+            ),
+          }
+          allTakeovers = allTakeovers.map(item => (item.id === updatedTakeover.id ? updatedTakeover : item))
+          this.setData({
+            currentTakeover: updatedTakeover,
+            takeoverList: this.data.takeoverList.map(item => (item.id === updatedTakeover.id ? updatedTakeover : item)),
+            showRemarkSheet: false,
+            memberRemark: '',
+          })
+          wx.showToast({ title: '已保存', icon: 'success' })
+        })
+        .catch(error => {
+          wx.showToast({ title: error.message || '保存失败', icon: 'none' })
+        })
+        .finally(() => {
+          this.setData({ isSavingRemark: false })
+        })
     },
 
     copySteamId(event: WechatMiniprogram.TouchEvent) {
@@ -2158,19 +2250,22 @@ Page({
       })
     },
 
-    markTakeoverJoined(takeoverId: string) {
+    markTakeoverJoined(takeoverId: string, remark = '') {
       this.setData({ isAuthorizing: true })
       apiRequest<Record<string, any> | { hasJoined?: boolean; joinedCount?: number }>({
         url: `/api/takeovers/${takeoverId}/join`,
         method: 'POST',
+        data: { remark },
       })
         .then(() => {
+          this.setData({ showRemarkSheet: false, memberRemark: '' })
           wx.showToast({ title: '已加入', icon: 'success' })
           this.loadTakeoversFromServer(1, true)
           this.openTakeoverDetail(takeoverId)
         })
         .catch(error => {
           if (error.code === 'PROFILE_INCOMPLETE') {
+            this.setData({ showRemarkSheet: false })
             this.openProfileSheetForAction('join', takeoverId)
             return
           }

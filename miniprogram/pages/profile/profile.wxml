@@ -59,6 +59,15 @@
         <text>还没有接龙记录</text>
       </view>
     </view>
+
+    <view class="feedback-entry" bindtap="openFeedback">
+      <view class="feedback-icon">✎</view>
+      <view class="feedback-copy">
+        <text class="feedback-title">意见反馈</text>
+        <text class="feedback-desc">遇到问题或有建议，告诉我们</text>
+      </view>
+      <text class="feedback-arrow">›</text>
+    </view>
   </view>
 
   <view class="global-loading" wx:if="{{isLoading}}">

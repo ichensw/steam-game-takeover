@@ -1,0 +1,62 @@
+<scroll-view class="page" scroll-y>
+  <image class="bg" src="{{backgroundUrl}}" mode="aspectFill"></image>
+  <view class="shade"></view>
+
+  <view class="shell">
+    <view class="nav">
+      <view class="back-button" bindtap="goBack">‹</view>
+      <text class="title">意见反馈</text>
+    </view>
+
+    <view class="form-card">
+      <view class="field">
+        <text class="label">反馈类型</text>
+        <view class="type-grid">
+          <view
+            wx:for="{{feedbackTypes}}"
+            wx:key="value"
+            class="type-chip {{feedbackType === item.value ? 'type-chip-active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectFeedbackType"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+
+      <view class="field">
+        <text class="label">反馈内容</text>
+        <view class="textarea-wrap">
+          <textarea
+            class="textarea"
+            value="{{content}}"
+            maxlength="500"
+            placeholder="请描述你遇到的问题或建议"
+            placeholder-class="placeholder"
+            bindinput="handleContentInput"
+          />
+          <text class="count">{{content.length}}/500</text>
+        </view>
+      </view>
+
+      <view class="field">
+        <text class="label">图片（选填）</text>
+        <upload images="{{images}}" max-count="3" is-uploading="{{isUploading}}" bindchoose="chooseImages" bindremove="removeImage" bindpreview="previewImage" />
+      </view>
+
+      <view class="field">
+        <text class="label">联系方式（选填）</text>
+        <input
+          class="input"
+          value="{{contact}}"
+          maxlength="100"
+          placeholder="微信号 / 手机号 / QQ"
+          placeholder-class="placeholder"
+          bindinput="handleContactInput"
+        />
+      </view>
+
+      <button class="submit-button" loading="{{isSubmitting}}" disabled="{{isSubmitting || isUploading}}" bindtap="submitFeedback">提交反馈</button>
+    </view>
+  </view>
+</scroll-view>

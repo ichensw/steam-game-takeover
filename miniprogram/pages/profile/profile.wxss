@@ -307,6 +307,65 @@ button::after {
   font-weight: 700;
 }
 
+.feedback-entry {
+  margin-top: 24rpx;
+  min-height: 112rpx;
+  padding: 20rpx 22rpx;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.54);
+  border-radius: 28rpx;
+  background: rgba(255, 244, 255, 0.78);
+  box-shadow: 0 12rpx 28rpx rgba(62, 24, 128, 0.2);
+  box-sizing: border-box;
+}
+
+.feedback-icon {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3cff 0%, #ff5cb9 100%);
+  color: #ffffff;
+  font-size: 34rpx;
+  line-height: 64rpx;
+  font-weight: 900;
+}
+
+.feedback-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.feedback-title {
+  color: #351556;
+  font-size: 28rpx;
+  line-height: 36rpx;
+  font-weight: 900;
+}
+
+.feedback-desc {
+  color: rgba(53, 21, 86, 0.52);
+  font-size: 23rpx;
+  line-height: 30rpx;
+  font-weight: 700;
+}
+
+.feedback-arrow {
+  flex-shrink: 0;
+  color: rgba(53, 21, 86, 0.42);
+  font-size: 44rpx;
+  line-height: 44rpx;
+  font-weight: 900;
+}
+
 .global-loading {
   position: fixed;
   inset: 0;

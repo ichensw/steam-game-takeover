@@ -114,7 +114,7 @@ export const apiRequest = async <T>(options: string | ApiRequestOptions) => {
   })
 }
 
-export const uploadImage = async (filePath: string) => {
+export const uploadImage = async (filePath: string, uploadPath = '/api/uploads/image') => {
   await loadApiConfig()
   return new Promise<string>((resolve, reject) => {
     const token = getUserToken()
@@ -124,7 +124,7 @@ export const uploadImage = async (filePath: string) => {
     }
 
     wx.uploadFile({
-      url: `${apiBaseUrl}/api/uploads/image`,
+      url: `${apiBaseUrl}${uploadPath}`,
       filePath,
       name: 'file',
       header: {

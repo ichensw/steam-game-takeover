@@ -190,6 +190,10 @@ Page({
     wx.navigateTo({ url: '/pages/my-takeovers/my-takeovers' })
   },
 
+  openFeedback() {
+    wx.navigateTo({ url: '/pages/feedback/feedback' })
+  },
+
   copySteamId() {
     if (!this.data.user.steamId) return
     wx.setClipboardData({
