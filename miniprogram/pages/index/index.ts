@@ -68,6 +68,13 @@ type Takeover = {
   kookInviteUrl: string
 }
 
+type Announcement = {
+  id: number
+  title: string
+  content: string
+  imageUrl: string
+}
+
 const PAGE_SIZE = 5
 
 const PROFILE_KEY = 'steam_takeover_user'
@@ -841,6 +848,8 @@ Page({
     showDetailSheet: false,
     showRemarkSheet: false,
     showCardMenuSheet: false,
+    showAnnouncement: false,
+    announcement: null as Announcement | null,
     currentTakeover: null as Takeover | null,
     detailJoinStatusText: '未加入',
     showDetailJoinButton: false,
@@ -909,6 +918,7 @@ Page({
 
     wx.removeStorageSync(HOME_REFRESH_KEY)
     this.loadTakeoversFromServer(1, true)
+    this.loadCurrentAnnouncement()
   },
 
   onShareAppMessage() {
@@ -979,6 +989,7 @@ Page({
               }
 
               this.loadTakeoversFromServer(1, true)
+              this.loadCurrentAnnouncement()
             })
             .catch(error => {
               wx.showToast({ title: error.message || '登录失败', icon: 'none' })
@@ -991,6 +1002,37 @@ Page({
           this.setData({ isAuthorizing: false })
           wx.showToast({ title: '登录失败，请稍后再试', icon: 'none' })
         },
+      })
+    },
+
+    loadCurrentAnnouncement() {
+      apiRequest<Record<string, any> | null>('/api/announcements/current')
+        .then(raw => {
+          if (!raw || !raw.id) return
+          this.setData({
+            announcement: {
+              id: Number(raw.id),
+              title: String(raw.title || ''),
+              content: String(raw.content || ''),
+              imageUrl: String(raw.imageUrl || raw.image_url || ''),
+            },
+            showAnnouncement: true,
+          })
+        })
+        .catch(() => {
+          // 公告不影响首页主流程。
+        })
+    },
+
+    closeAnnouncement() {
+      const announcement = this.data.announcement
+      this.setData({ showAnnouncement: false })
+      if (!announcement) return
+      apiRequest({
+        url: `/api/announcements/${announcement.id}/read`,
+        method: 'POST',
+      }).catch(() => {
+        // 下次进入仍可再次拉取，当前不打断用户。
       })
     },
 

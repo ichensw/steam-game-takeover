@@ -85,6 +85,18 @@
   </view>
 </view>
 
+<view class="announcement-mask" wx:if="{{showAnnouncement && announcement}}"></view>
+<view class="announcement-dialog" wx:if="{{showAnnouncement && announcement}}">
+  <image class="announcement-image" wx:if="{{announcement.imageUrl}}" src="{{announcement.imageUrl}}" mode="aspectFill"></image>
+  <view class="announcement-body">
+    <text class="announcement-title">{{announcement.title}}</text>
+    <scroll-view class="announcement-content-scroll" scroll-y show-scrollbar="{{false}}">
+      <text class="announcement-content">{{announcement.content}}</text>
+    </scroll-view>
+    <button class="announcement-button" bindtap="closeAnnouncement">我知道了</button>
+  </view>
+</view>
+
 <view class="global-loading" wx:if="{{isAuthorizing}}">
   <view class="loading-card">
     <view class="loading-spinner"></view>

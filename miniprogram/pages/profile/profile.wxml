@@ -45,6 +45,29 @@
       </view>
     </view>
 
+    <view class="profile-completion-card profile-completion-{{profileCompletion.status}}" wx:if="{{showProfileCompletion}}" bindtap="openProfileCompletion">
+      <view class="profile-completion-close" wx:if="{{profileCompletion.score >= 100}}" catchtap="closeProfileCompletion">×</view>
+      <view class="profile-completion-main">
+        <view class="profile-completion-badge">{{profileCompletion.badge}}</view>
+        <view class="profile-completion-copy">
+          <text class="profile-completion-title">{{profileCompletion.title}}</text>
+          <text class="profile-completion-desc">{{profileCompletion.message}}</text>
+        </view>
+        <view class="profile-completion-side">
+          <text class="profile-completion-score">{{profileCompletion.score}}%</text>
+        </view>
+      </view>
+      <view class="profile-completion-bar">
+        <view class="profile-completion-progress" style="width: {{profileCompletion.score}}%;"></view>
+        <view class="profile-completion-shine" wx:if="{{profileCompletion.score >= 100}}"></view>
+      </view>
+      <view class="profile-completion-foot">
+        <text class="profile-completion-tag">{{profileCompletion.tag}}</text>
+        <text class="profile-completion-tip">{{profileCompletion.tip}}</text>
+        <text class="profile-completion-action">{{profileCompletion.actionLabel}} ›</text>
+      </view>
+    </view>
+
     <view class="section">
       <view class="section-head" bindtap="openMyTakeovers">
         <text class="section-title">我的接龙</text>

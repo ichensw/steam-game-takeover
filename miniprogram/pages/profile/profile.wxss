@@ -258,6 +258,211 @@ button::after {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.profile-completion-card {
+  position: relative;
+  overflow: visible;
+  margin-top: 24rpx;
+  padding: 24rpx 24rpx 22rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.46);
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, rgba(255, 244, 255, 0.9), rgba(236, 221, 255, 0.86));
+  box-shadow: 0 14rpx 30rpx rgba(62, 24, 128, 0.2);
+  backdrop-filter: blur(18rpx);
+  animation: profileCompletionIn 360ms ease-out both;
+}
+
+.profile-completion-complete {
+  border-color: rgba(255, 255, 255, 0.58);
+  background: linear-gradient(135deg, rgba(255, 246, 255, 0.94), rgba(232, 218, 255, 0.9));
+  box-shadow: 0 16rpx 34rpx rgba(98, 45, 174, 0.2), 0 0 24rpx rgba(255, 92, 185, 0.14);
+}
+
+.profile-completion-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.profile-completion-badge {
+  width: 52rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3cff 0%, #ff3fa7 100%);
+  color: #ffffff;
+  font-size: 30rpx;
+  line-height: 52rpx;
+  font-weight: 900;
+  box-shadow: 0 8rpx 20rpx rgba(255, 63, 167, 0.28);
+}
+
+.profile-completion-complete .profile-completion-badge {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ff73c7 100%);
+  color: #ffffff;
+  box-shadow: 0 10rpx 22rpx rgba(139, 92, 246, 0.22);
+  animation: profileCompletionPop 520ms cubic-bezier(0.2, 1.2, 0.28, 1) both;
+}
+
+.profile-completion-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.profile-completion-title {
+  color: #351556;
+  font-size: 30rpx;
+  line-height: 38rpx;
+  font-weight: 900;
+}
+
+.profile-completion-desc {
+  color: rgba(53, 21, 86, 0.6);
+  font-size: 24rpx;
+  line-height: 32rpx;
+  font-weight: 700;
+}
+
+.profile-completion-score {
+  display: block;
+  text-align: right;
+  flex-shrink: 0;
+  color: #7c3cff;
+  font-size: 42rpx;
+  line-height: 48rpx;
+  font-weight: 900;
+}
+
+.profile-completion-complete .profile-completion-score {
+  color: #7c3cff;
+}
+
+.profile-completion-side {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.profile-completion-complete .profile-completion-side {
+  padding-right: 16rpx;
+}
+
+.profile-completion-close {
+  position: absolute;
+  top: -14rpx;
+  right: -10rpx;
+  z-index: 2;
+  width: 50rpx;
+  height: 50rpx;
+  display: block;
+  border-radius: 50%;
+  border: 2rpx solid rgba(255, 255, 255, 0.66);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(53, 21, 86, 0.66);
+  font-size: 34rpx;
+  line-height: 46rpx;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 8rpx 18rpx rgba(53, 21, 86, 0.12);
+  backdrop-filter: blur(10rpx);
+}
+
+.profile-completion-complete .profile-completion-close {
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(124, 60, 255, 0.68);
+}
+
+.profile-completion-bar {
+  position: relative;
+  margin-top: 20rpx;
+  height: 16rpx;
+  overflow: hidden;
+  border-radius: 999rpx;
+  background: rgba(124, 60, 255, 0.14);
+}
+
+.profile-completion-complete .profile-completion-bar {
+  background: rgba(124, 60, 255, 0.14);
+}
+
+.profile-completion-progress {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7c3cff 0%, #ff5cb9 100%);
+  transition: width 320ms ease, background 260ms ease;
+}
+
+.profile-completion-complete .profile-completion-progress {
+  background: linear-gradient(90deg, #8b5cf6 0%, #c65cff 54%, #ff73c7 100%);
+}
+
+.profile-completion-shine {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 38%;
+  height: 100%;
+  transform: skewX(-24deg);
+  background: rgba(255, 255, 255, 0.58);
+  animation: profileCompletionShine 900ms ease-out 180ms both;
+}
+
+.profile-completion-foot {
+  margin-top: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.profile-completion-tag {
+  flex-shrink: 0;
+  padding: 7rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(124, 60, 255, 0.12);
+  color: #6d28d9;
+  font-size: 21rpx;
+  line-height: 28rpx;
+  font-weight: 900;
+}
+
+.profile-completion-complete .profile-completion-tag {
+  background: rgba(124, 60, 255, 0.12);
+  color: #6d28d9;
+}
+
+.profile-completion-tip {
+  min-width: 0;
+  flex: 1;
+  color: rgba(53, 21, 86, 0.45);
+  font-size: 22rpx;
+  line-height: 30rpx;
+  font-weight: 700;
+}
+
+.profile-completion-action {
+  flex-shrink: 0;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(124, 60, 255, 0.12);
+  color: #6d28d9;
+  font-size: 23rpx;
+  line-height: 30rpx;
+  font-weight: 900;
+}
+
+.profile-completion-complete .profile-completion-action {
+  background: rgba(255, 92, 185, 0.14);
+  color: #7c3cff;
+}
+
 .section {
   margin-top: 34rpx;
   padding: 28rpx 20rpx 24rpx;
@@ -400,6 +605,42 @@ button::after {
   color: rgba(247, 248, 255, 0.86);
   font-size: 24rpx;
   font-weight: 600;
+}
+
+@keyframes profileCompletionIn {
+  from {
+    opacity: 0;
+    transform: translateY(14rpx);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes profileCompletionPop {
+  0% {
+    transform: scale(0.72);
+  }
+
+  62% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes profileCompletionShine {
+  from {
+    left: -42%;
+  }
+
+  to {
+    left: 112%;
+  }
 }
 
 @keyframes spin {

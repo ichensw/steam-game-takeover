@@ -38,9 +38,22 @@ type Summary = {
   recent?: RecentTakeover[]
 }
 
+type ProfileCompletion = {
+  score: number
+  status: 'pending' | 'complete'
+  title: string
+  message: string
+  tip: string
+  badge: string
+  tag: string
+  actionLabel: string
+}
+
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
 const PROFILE_BG_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/uploads/2026/06/220-1782216063196384700-57523733eb66.png'
+const DEFAULT_AVATAR_URLS = [FEMALE_AVATAR_URL, MALE_AVATAR_URL]
+const PROFILE_COMPLETION_DISMISSED_KEY = 'profileCompletionDismissed'
 const STATUS_COVERS: Record<string, string> = {
   待发车: '/assets/takeover-card-pending.png',
   招募中: '/assets/takeover-card-recruiting.png',
@@ -64,6 +77,43 @@ const avatarFor = (user: User) => {
 
 const creditStatusFor = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
 
+const getProfileCompletion = (user: User): ProfileCompletion => {
+  const needsAvatar = !user.avatarUrl || DEFAULT_AVATAR_URLS.includes(user.avatarUrl)
+  const needsSteamId = !user.steamId
+  const score =
+    (!needsAvatar ? 20 : 0) +
+    (user.nickname ? 20 : 0) +
+    (normalizeGender(user.gender) ? 10 : 0) +
+    (!needsSteamId ? 40 : 0) +
+    (Number(user.creditScore ?? 100) >= 70 ? 10 : 0)
+
+  if (needsSteamId && needsAvatar) {
+    return { score, status: 'pending', title: '资料还差一点', message: '补上 SteamID，再换个头像更好认', tip: '完善资料后，队友更容易确认身份', badge: '!', tag: '待补 SteamID / 头像', actionLabel: '去完善' }
+  }
+
+  if (needsSteamId) {
+    return { score, status: 'pending', title: '资料还差一点', message: '补上 SteamID，队友更容易找到你', tip: '完善资料后，队友更容易确认身份', badge: '!', tag: '待补 SteamID', actionLabel: '去完善' }
+  }
+
+  if (needsAvatar) {
+    return { score, status: 'pending', title: '资料还差一点', message: '换个头像，队友更容易认出你', tip: '完善资料后，队友更容易确认身份', badge: '!', tag: '待换头像', actionLabel: '去完善' }
+  }
+
+  if (!user.nickname || !normalizeGender(user.gender)) {
+    return { score, status: 'pending', title: '资料还差一点', message: '完善基础资料，接龙体验更顺滑', tip: '完善资料后，队友更容易确认身份', badge: '!', tag: '待补基础资料', actionLabel: '去完善' }
+  }
+
+  if (Number(user.creditScore ?? 100) < 70) {
+    return { score, status: 'pending', title: '资料还差一点', message: '保持良好组队记录，资料会更完整', tip: '完善资料后，队友更容易确认身份', badge: '!', tag: '信誉待恢复', actionLabel: '编辑资料' }
+  }
+
+  return { score, status: 'complete', title: '资料已满分', message: '队友一眼就能找到你，组队体验拉满', tip: '保持这个状态，组队会更顺利', badge: '✓', tag: '满分档案', actionLabel: '编辑资料' }
+}
+
+const shouldShowProfileCompletion = (completion: ProfileCompletion) => (
+  completion.score < 100 || wx.getStorageSync(PROFILE_COMPLETION_DISMISSED_KEY) !== true
+)
+
 const normalizeUser = (user: Partial<User> | null | undefined, fallback: User): User => {
   const rawUser = user || {}
   const creditScore = Number(
@@ -77,7 +127,7 @@ const normalizeUser = (user: Partial<User> | null | undefined, fallback: User): 
     ...fallback,
     ...rawUser,
     nickname: rawUser.nickname || rawUser.nickName || fallback.nickname || '',
-    steamId: rawUser.steamId || fallback.steamId || '',
+    steamId: rawUser.steamId !== undefined && rawUser.steamId !== null ? rawUser.steamId : fallback.steamId || '',
     creditScore,
     creditStatus: rawUser.creditStatus || fallback.creditStatus || creditStatusFor(creditScore),
   } as User
@@ -110,6 +160,17 @@ Page({
       creditScore: 100,
       creditStatus: 'normal',
     } as User,
+    profileCompletion: {
+      score: 0,
+      status: 'pending',
+      title: '资料还差一点',
+      message: '补上 SteamID，队友更容易找到你',
+      tip: '完善资料后，队友更容易确认身份',
+      badge: '!',
+      tag: '待补 SteamID',
+      actionLabel: '去完善',
+    } as ProfileCompletion,
+    showProfileCompletion: true,
     createdCount: 0,
     joinedCount: 0,
     recent: [] as RecentTakeover[],
@@ -142,8 +203,12 @@ Page({
       .then(summary => {
         const safeSummary = summary || {}
         const normalizedUser = normalizeUser(safeSummary.user, this.data.user)
+        const profileCompletion = getProfileCompletion(normalizedUser)
+        if (profileCompletion.score < 100) wx.removeStorageSync(PROFILE_COMPLETION_DISMISSED_KEY)
         this.setData({
           user: normalizedUser,
+          profileCompletion,
+          showProfileCompletion: shouldShowProfileCompletion(profileCompletion),
           createdCount: Number(safeSummary.createdCount || 0),
           joinedCount: Number(safeSummary.joinedCount || 0),
           recent: (safeSummary.recent || []).map(formatCardTakeover),
@@ -192,6 +257,20 @@ Page({
 
   openFeedback() {
     wx.navigateTo({ url: '/pages/feedback/feedback' })
+  },
+
+  openProfileCompletion() {
+    if (!this.data.user.nickname || !this.data.user.gender) {
+      this.openCompleteProfileSheet()
+      return
+    }
+    this.openProfileSheet()
+  },
+
+  closeProfileCompletion() {
+    if (this.data.profileCompletion.score < 100) return
+    wx.setStorageSync(PROFILE_COMPLETION_DISMISSED_KEY, true)
+    this.setData({ showProfileCompletion: false })
   },
 
   copySteamId() {
@@ -309,12 +388,16 @@ Page({
           ...this.data.user,
           ...savedUser,
           nickname: savedUser.nickname || savedUser.nickName || nickname,
-          steamId: savedUser.steamId || steamId || this.data.user.steamId,
+          steamId: savedUser.steamId !== undefined && savedUser.steamId !== null ? savedUser.steamId : steamId,
           gender: savedUser.gender || (isCompleteMode ? toApiGender(gender as Gender) : this.data.user.gender),
           avatarUrl: savedUser.avatarUrl || avatarUrl,
         }, this.data.user)
+        const profileCompletion = getProfileCompletion(nextUser)
+        if (profileCompletion.score < 100) wx.removeStorageSync(PROFILE_COMPLETION_DISMISSED_KEY)
         this.setData({
           user: nextUser,
+          profileCompletion,
+          showProfileCompletion: shouldShowProfileCompletion(profileCompletion),
           showProfileSheet: false,
         })
       })
