@@ -85,7 +85,7 @@ const getProfileCompletion = (user: User): ProfileCompletion => {
     (user.nickname ? 20 : 0) +
     (normalizeGender(user.gender) ? 10 : 0) +
     (!needsSteamId ? 40 : 0) +
-    (Number(user.creditScore ?? 100) >= 70 ? 10 : 0)
+    (Number(user.creditScore !== undefined && user.creditScore !== null ? user.creditScore : 100) >= 70 ? 10 : 0)
 
   if (needsSteamId && needsAvatar) {
     return { score, status: 'pending', title: '资料还差一点', message: '补上 SteamID，再换个头像更好认', tip: '完善资料后，队友更容易确认身份', badge: '!', tag: '待补 SteamID / 头像', actionLabel: '去完善' }
@@ -103,7 +103,7 @@ const getProfileCompletion = (user: User): ProfileCompletion => {
     return { score, status: 'pending', title: '资料还差一点', message: '完善基础资料，接龙体验更顺滑', tip: '完善资料后，队友更容易确认身份', badge: '!', tag: '待补基础资料', actionLabel: '去完善' }
   }
 
-  if (Number(user.creditScore ?? 100) < 70) {
+  if (Number(user.creditScore !== undefined && user.creditScore !== null ? user.creditScore : 100) < 70) {
     return { score, status: 'pending', title: '资料还差一点', message: '保持良好组队记录，资料会更完整', tip: '完善资料后，队友更容易确认身份', badge: '!', tag: '信誉待恢复', actionLabel: '编辑资料' }
   }
 
