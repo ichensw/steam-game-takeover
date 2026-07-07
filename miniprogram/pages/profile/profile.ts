@@ -27,6 +27,8 @@ type RecentTakeover = {
   statusTone: string
   coverImage: string
   participantAvatars: string[]
+  participantExtraCount?: number
+  recommendTags?: { type?: string; label?: string; tone?: string }[]
   previewMembers?: { avatarUrl?: string }[]
 }
 
@@ -155,11 +157,14 @@ const normalizeUser = (user: Partial<User> | null | undefined, fallback: User): 
 
 const formatCardTakeover = (takeover: RecentTakeover) => {
   const statusTone = takeover.statusLabel === '已结束' ? 'ended' : takeover.statusLabel === '已满员' ? 'purple' : 'orange'
+  const participantAvatars = (takeover.previewMembers || []).map(member => member.avatarUrl || FEMALE_AVATAR_URL).slice(0, 4)
   return {
     ...takeover,
     statusTone,
     coverImage: STATUS_COVERS[takeover.statusLabel] || STATUS_COVERS['招募中'],
-    participantAvatars: (takeover.previewMembers || []).map(member => member.avatarUrl || FEMALE_AVATAR_URL).slice(0, 5),
+    participantAvatars,
+    participantExtraCount: Math.max((takeover.joinedCount || 0) - participantAvatars.length, 0),
+    recommendTags: (takeover.recommendTags || []).filter(tag => tag.label !== '已满员').slice(0, 2),
   }
 }
 

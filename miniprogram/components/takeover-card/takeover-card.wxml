@@ -4,9 +4,11 @@
   <view class="card-sparkle card-sparkle-two">♡</view>
   <view class="status-badge status-{{takeover.statusTone}}">{{takeover.statusLabel}}</view>
 
-  <view class="creator-badge">
-    <text class="creator-icon">🎮</text>
-    <text class="creator-name">{{takeover.host || takeover.creatorName || '兔兔窝'}}</text>
+  <view class="card-tag-row">
+    <view class="creator-badge">
+      <text class="creator-icon">🎮</text>
+      <text class="creator-name">{{takeover.host || takeover.creatorName || '兔兔窝'}}</text>
+    </view>
   </view>
 
   <view class="card-head">
@@ -24,7 +26,7 @@
       </view>
       <text class="meta-value">{{takeover.scheduleText}}</text>
     </view>
-    <view class="card-meta-row">
+    <view class="card-meta-row member-meta-row">
       <view class="meta-icon">
         <image class="meta-icon-image" src="/assets/icon-members.svg" mode="aspectFit"></image>
       </view>
@@ -42,6 +44,19 @@
         src="{{avatar}}"
         mode="aspectFill"
       ></image>
+      <view class="member-avatar member-more" wx:if="{{takeover.participantExtraCount > 0}}">
+        +{{takeover.participantExtraCount}}
+      </view>
+    </view>
+    <view class="recommend-tags" wx:if="{{takeover.recommendTags && takeover.recommendTags.length}}">
+      <view
+        class="recommend-tag recommend-tag-{{tag.tone}}"
+        wx:for="{{takeover.recommendTags}}"
+        wx:for-item="tag"
+        wx:key="type"
+      >
+        {{tag.label}}
+      </view>
     </view>
   </view>
 </view>

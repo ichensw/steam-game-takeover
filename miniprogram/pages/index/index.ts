@@ -42,6 +42,12 @@ type UserProfile = {
 
 type Participant = UserProfile
 
+type RecommendTag = {
+  type: string
+  label: string
+  tone: string
+}
+
 type Takeover = {
   id: string
   title: string
@@ -53,12 +59,14 @@ type Takeover = {
   description: string
   avatarUrl: string
   participantAvatars: string[]
+  participantExtraCount: number
   participants: Participant[]
   hasJoined: boolean
   creatorCreditScore?: number
   creatorCreditStatus?: string
   categoryLabel: string
   cardTags: string[]
+  recommendTags: RecommendTag[]
   statusLabel: string
   statusTone: string
   takeoverState: number
@@ -234,6 +242,21 @@ const stripTimeSeconds = (time: unknown) => {
   return time.length >= 5 ? time.slice(0, 5) : time
 }
 
+const normalizeRecommendTags = (value: unknown): RecommendTag[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value
+    .filter((tag): tag is Record<string, any> => !!tag && typeof tag === 'object')
+    .map((tag: Record<string, any>) => ({
+      type: String(tag.type || ''),
+      label: String(tag.label || ''),
+      tone: String(tag.tone || tag.type || 'muted'),
+    }))
+    .filter(tag => tag.label && tag.label !== '已满员')
+    .slice(0, 2)
+}
+
 const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
   const scheduleType = normalizeScheduleType(rawTakeover.scheduleType || rawTakeover.schedule_type)
   const playTime = stripTimeSeconds(rawTakeover.playTime || rawTakeover.play_time || rawTakeover.time)
@@ -261,6 +284,8 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
             time: playTime,
           }
 
+  const participantAvatars = participants.map(participant => participant.avatarUrl).slice(0, 4)
+
   return {
     id: String(rawTakeover.id),
     title: rawTakeover.title || '',
@@ -268,10 +293,11 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     joined,
     limit,
     schedule,
-    scheduleText: rawTakeover.scheduleText || rawTakeover.schedule_text || formatSchedule(schedule),
+    scheduleText: formatSchedule(schedule) || rawTakeover.scheduleText || rawTakeover.schedule_text || '',
     description: rawTakeover.description || '',
     avatarUrl: rawTakeover.avatarUrl || rawTakeover.avatar_url || (participants[0] && participants[0].avatarUrl) || FEMALE_AVATAR_URL,
-    participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 5),
+    participantAvatars,
+    participantExtraCount: Math.max(joined - participantAvatars.length, 0),
     participants,
     hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
     takeoverState,
@@ -442,7 +468,7 @@ const formatSchedule = (schedule: Schedule) => {
     return `每天 ${schedule.time}`
   }
 
-  return `${getDateLabel(schedule.startDate)}-${getDateLabel(schedule.endDate)} 每天 ${schedule.time}`
+  return `${getDateLabel(schedule.startDate)}-${getDateLabel(schedule.endDate)} ${schedule.time}`
 }
 
 const getDisplaySeed = (id: string) =>
@@ -467,6 +493,7 @@ const buildTakeoverDisplayFields = (
       rawTakeover.mode || rawTakeover.mode_label || (scheduleType === 'daily' ? '日常' : '上分'),
       joined >= limit && limit > 0 ? '满员' : '开黑',
     ],
+    recommendTags: normalizeRecommendTags(rawTakeover.recommendTags || rawTakeover.recommend_tags),
     statusLabel,
     statusTone,
     coverImage: rawTakeover.coverImage || rawTakeover.cover_image || STATUS_COVERS[statusLabel] || CARD_COVERS[numericId % CARD_COVERS.length],
@@ -474,12 +501,14 @@ const buildTakeoverDisplayFields = (
 }
 
 const createMockTakeover = (
-  takeover: Omit<Takeover, 'scheduleText' | 'participantAvatars' | 'categoryLabel' | 'cardTags' | 'statusLabel' | 'statusTone' | 'takeoverState' | 'coverImage' | 'kookChannelId' | 'kookChannelName' | 'kookInviteUrl'> & {
+  takeover: Omit<Takeover, 'scheduleText' | 'participantAvatars' | 'participantExtraCount' | 'categoryLabel' | 'cardTags' | 'recommendTags' | 'statusLabel' | 'statusTone' | 'takeoverState' | 'coverImage' | 'kookChannelId' | 'kookChannelName' | 'kookInviteUrl'> & {
     kookChannelId?: string
     kookChannelName?: string
     kookInviteUrl?: string
   }
 ): Takeover => {
+  const participantAvatars = takeover.participants.map(participant => participant.avatarUrl).slice(0, 4)
+
   return {
     ...takeover,
     kookChannelId: takeover.kookChannelId || '',
@@ -488,7 +517,8 @@ const createMockTakeover = (
     takeoverState: 1,
     ...buildTakeoverDisplayFields(takeover.id, takeover.joined, takeover.limit, takeover.schedule.type),
     scheduleText: formatSchedule(takeover.schedule),
-    participantAvatars: takeover.participants.map(participant => participant.avatarUrl).slice(0, 5),
+    participantAvatars,
+    participantExtraCount: Math.max(takeover.joined - participantAvatars.length, 0),
   }
 }
 
