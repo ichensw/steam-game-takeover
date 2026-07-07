@@ -22,6 +22,7 @@ type UploadResponse = ApiResponse<UploadResult> | UploadResult
 const TOKEN_KEY = 'steam_takeover_token'
 const API_BASE_URL_KEY = 'steam_takeover_api_base_url'
 const DEFAULT_API_BASE_URL = 'https://rabbits.ink/miniprogram-api'
+const TAKEOVER_REMINDER_TEMPLATE_ID = '7ag6n1mjOoMCpyAE0E9SXpx72vwc_dij8HqD9kB-NeY'
 
 let apiBaseUrl = (wx.getStorageSync(API_BASE_URL_KEY) as string) || DEFAULT_API_BASE_URL
 let configPromise: Promise<string> | null = null
@@ -110,6 +111,34 @@ export const apiRequest = async <T>(options: string | ApiRequestOptions) => {
         resolve(responseData as T)
       },
       fail: error => reject(new Error(friendlyNetworkError(error.errMsg))),
+    })
+  })
+}
+
+export const subscribeTakeoverReminder = async (takeoverId: string | number) => {
+  if (!wx.requestSubscribeMessage) {
+    return
+  }
+
+  return new Promise<void>(resolve => {
+    wx.requestSubscribeMessage({
+      tmplIds: [TAKEOVER_REMINDER_TEMPLATE_ID],
+      success: result => {
+        const subscribeResult = result as WechatMiniprogram.IAnyObject
+        if (subscribeResult[TAKEOVER_REMINDER_TEMPLATE_ID] !== 'accept') {
+          resolve()
+          return
+        }
+
+        apiRequest({
+          url: `/api/takeovers/${takeoverId}/reminder-subscription`,
+          method: 'POST',
+          data: { accepted: true },
+        })
+          .catch(() => undefined)
+          .finally(() => resolve())
+      },
+      fail: () => resolve(),
     })
   })
 }

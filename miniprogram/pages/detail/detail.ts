@@ -1,6 +1,6 @@
 export {}
 
-import { apiRequest, getUserToken, uploadImage } from '../../utils/api'
+import { apiRequest, getUserToken, subscribeTakeoverReminder, uploadImage } from '../../utils/api'
 import { enableShareMenu, HOME_SHARE_TITLE } from '../../utils/share'
 
 type Gender = 'male' | 'female'
@@ -961,9 +961,10 @@ Page({
       return
     }
 
+    const takeoverId = this.data.takeover.id
     this.setData({ isJoining: true, isSavingRemark: true })
     apiRequest<Record<string, any> | { hasJoined?: boolean; joinedCount?: number }>({
-      url: `/api/takeovers/${this.data.takeover.id}/join`,
+      url: `/api/takeovers/${takeoverId}/join`,
       method: 'POST',
       data: { remark },
     })
@@ -982,6 +983,7 @@ Page({
         this.setData({ showRemarkSheet: false, memberRemark: '', memberRemarkError: '' })
         wx.showToast({ title: '已加入', icon: 'success' })
         refreshPreviousHome(this)
+        subscribeTakeoverReminder(takeoverId)
         this.loadTakeover()
       })
       .catch(error => {

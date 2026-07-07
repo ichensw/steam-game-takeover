@@ -1,4 +1,4 @@
-import { apiRequest, getUserToken, uploadImage } from '../../utils/api'
+import { apiRequest, getUserToken, subscribeTakeoverReminder, uploadImage } from '../../utils/api'
 import { enableShareMenu, HOME_SHARE_PATH, HOME_SHARE_TITLE } from '../../utils/share'
 
 type PendingAction = 'view' | 'join' | 'create' | 'profile'
@@ -1828,7 +1828,7 @@ Page({
 
           this.setData({ isAuthorizing: true })
           apiRequest<null>({
-            url: `/api/admin/takeovers/${takeoverId}`,
+            url: `/api/takeovers/${takeoverId}`,
             method: 'DELETE',
           })
             .then(() => {
@@ -1904,7 +1904,7 @@ Page({
       if (editingTakeover) {
         this.setData({ isAuthorizing: true, isSubmittingTakeover: true })
         apiRequest<Record<string, any> | null>({
-          url: `/api/admin/takeovers/${editingTakeover.id}`,
+          url: `/api/takeovers/${editingTakeover.id}`,
           method: 'PUT',
           data: payload,
         })
@@ -2302,6 +2302,7 @@ Page({
         .then(() => {
           this.setData({ showRemarkSheet: false, memberRemark: '' })
           wx.showToast({ title: '已加入', icon: 'success' })
+          subscribeTakeoverReminder(takeoverId)
           this.loadTakeoversFromServer(1, true)
           this.openTakeoverDetail(takeoverId)
         })
