@@ -1,7 +1,6 @@
 import { apiRequest, getUserToken, uploadImage } from '../../utils/api'
 import { enableShareMenu, HOME_SHARE_TITLE } from '../../utils/share'
 
-{
 type Gender = 'male' | 'female'
 type ProfileMode = 'complete' | 'edit'
 
@@ -49,6 +48,12 @@ type ProfileCompletion = {
   actionLabel: string
 }
 
+type CreditInfo = {
+  title: string
+  desc: string
+  badge: string
+}
+
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
 const PROFILE_BG_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/uploads/2026/06/220-1782216063196384700-57523733eb66.png'
@@ -76,6 +81,16 @@ const avatarFor = (user: User) => {
 }
 
 const creditStatusFor = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
+
+const getCreditInfo = (score: number, status: string): CreditInfo => {
+  if (status === 'disabled') {
+    return { title: '暂不可参与接龙', desc: '50 分及以下会暂停参与接龙，请联系管理员处理', badge: '' }
+  }
+  if (status === 'limited') {
+    return { title: '参与接龙受限', desc: '低于 70 分会影响加入接龙，保持良好组队记录可恢复', badge: '' }
+  }
+  return { title: '信誉状态正常', desc: '70 分以上可正常加入接龙，90 分以上会展示可靠队友标识', badge: score >= 90 ? '可靠队友' : '' }
+}
 
 const getProfileCompletion = (user: User): ProfileCompletion => {
   const needsAvatar = !user.avatarUrl || DEFAULT_AVATAR_URLS.includes(user.avatarUrl)
@@ -170,6 +185,12 @@ Page({
       tag: '待补 SteamID',
       actionLabel: '去完善',
     } as ProfileCompletion,
+    creditInfo: {
+      title: '信誉状态正常',
+      desc: '70 分以上可正常加入接龙，90 分以上会展示可靠队友标识',
+      badge: '可靠队友',
+    } as CreditInfo,
+    showCreditHelp: false,
     showProfileCompletion: true,
     createdCount: 0,
     joinedCount: 0,
@@ -208,6 +229,7 @@ Page({
         this.setData({
           user: normalizedUser,
           profileCompletion,
+          creditInfo: getCreditInfo(Number(normalizedUser.creditScore || 100), normalizedUser.creditStatus || 'normal'),
           showProfileCompletion: shouldShowProfileCompletion(profileCompletion),
           createdCount: Number(safeSummary.createdCount || 0),
           joinedCount: Number(safeSummary.joinedCount || 0),
@@ -257,6 +279,22 @@ Page({
 
   openFeedback() {
     wx.navigateTo({ url: '/pages/feedback/feedback' })
+  },
+
+  openMyFeedbacks() {
+    wx.navigateTo({ url: '/pages/my-feedbacks/my-feedbacks' })
+  },
+
+  openCreditLogs() {
+    wx.navigateTo({ url: '/pages/credit-logs/credit-logs' })
+  },
+
+  openCreditHelp() {
+    this.setData({ showCreditHelp: true })
+  },
+
+  closeCreditHelp() {
+    this.setData({ showCreditHelp: false })
   },
 
   openProfileCompletion() {
@@ -397,6 +435,7 @@ Page({
         this.setData({
           user: nextUser,
           profileCompletion,
+          creditInfo: getCreditInfo(Number(nextUser.creditScore || 100), nextUser.creditStatus || 'normal'),
           showProfileCompletion: shouldShowProfileCompletion(profileCompletion),
           showProfileSheet: false,
         })
@@ -413,4 +452,3 @@ Page({
     wx.redirectTo({ url: '/pages/index/index' })
   },
 })
-}

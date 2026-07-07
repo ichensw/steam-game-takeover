@@ -1,0 +1,52 @@
+<scroll-view
+  class="page"
+  scroll-y
+  refresher-enabled
+  refresher-triggered="{{isRefreshing}}"
+  lower-threshold="100"
+  bindrefresherrefresh="refresh"
+  bindscrolltolower="loadMore"
+>
+  <image class="bg" src="{{backgroundUrl}}" mode="aspectFill"></image>
+  <view class="shade"></view>
+
+  <view class="shell">
+    <view class="nav">
+      <view class="back-button" bindtap="goBack">‹</view>
+      <text class="title">我的反馈</text>
+    </view>
+
+    <view class="feedback-card" wx:for="{{list}}" wx:for-index="feedbackIndex" wx:key="id">
+      <view class="feedback-head">
+        <text class="feedback-type">{{item.feedback_type}}</text>
+        <text class="feedback-status status-{{item.status}}">{{item.status_label}}</text>
+      </view>
+      <text class="feedback-content">{{item.content}}</text>
+      <view class="feedback-images" wx:if="{{item.images.length}}">
+        <image
+          wx:for="{{item.images}}"
+          wx:for-item="image"
+          wx:for-index="imageIndex"
+          wx:key="*this"
+          class="feedback-image"
+          src="{{image}}"
+          mode="aspectFill"
+          data-feedback-index="{{feedbackIndex}}"
+          data-image-index="{{imageIndex}}"
+          bindtap="previewImage"
+        ></image>
+      </view>
+      <text class="feedback-time">{{item.created_at}}</text>
+    </view>
+
+    <view class="empty-card" wx:if="{{!list.length && !isLoading}}">
+      <text>还没有提交过反馈</text>
+      <button class="empty-button" bindtap="openFeedback">提交反馈</button>
+    </view>
+
+    <view class="footer" wx:if="{{list.length}}">
+      <text wx:if="{{isLoadingMore}}">加载中...</text>
+      <text wx:elif="{{!hasMore}}">已经到底啦</text>
+    </view>
+  </view>
+</scroll-view>

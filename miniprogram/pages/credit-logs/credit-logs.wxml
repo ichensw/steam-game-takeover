@@ -1,0 +1,38 @@
+<scroll-view
+  class="page"
+  scroll-y
+  refresher-enabled
+  refresher-triggered="{{isRefreshing}}"
+  lower-threshold="100"
+  bindrefresherrefresh="refresh"
+  bindscrolltolower="loadMore"
+>
+  <image class="bg" src="{{backgroundUrl}}" mode="aspectFill"></image>
+  <view class="shade"></view>
+
+  <view class="shell">
+    <view class="nav">
+      <view class="back-button" bindtap="goBack">‹</view>
+      <text class="title">信誉记录</text>
+    </view>
+
+    <view class="credit-log-card" wx:for="{{list}}" wx:key="id">
+      <view class="credit-log-head">
+        <text class="credit-log-reason">{{item.reasonType}}</text>
+        <text class="credit-log-delta {{item.scoreDelta >= 0 ? 'delta-plus' : 'delta-minus'}}">{{item.scoreDelta >= 0 ? '+' : ''}}{{item.scoreDelta}}</text>
+      </view>
+      <text class="credit-log-score">{{item.scoreBefore}} → {{item.scoreAfter}}</text>
+      <text class="credit-log-note">{{item.reason || '暂无说明'}}</text>
+      <text class="credit-log-time">{{item.createdAt}}</text>
+    </view>
+
+    <view class="empty-card" wx:if="{{!list.length && !isLoading}}">
+      <text>暂无信誉变动记录</text>
+    </view>
+
+    <view class="footer" wx:if="{{list.length}}">
+      <text wx:if="{{isLoadingMore}}">加载中...</text>
+      <text wx:elif="{{!hasMore}}">已经到底啦</text>
+    </view>
+  </view>
+</scroll-view>

@@ -1,0 +1,136 @@
+page {
+  min-height: 100vh;
+  background: #160750;
+  color: #ffffff;
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+}
+
+.bg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+}
+
+.shade {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(13, 4, 58, 0.12), rgba(22, 7, 80, 0.52));
+}
+
+.shell {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  padding: 78rpx 34rpx 72rpx;
+  box-sizing: border-box;
+}
+
+.nav {
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+}
+
+.back-button {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 56rpx;
+  line-height: 56rpx;
+  box-shadow: 0 0 22rpx rgba(255, 118, 238, 0.32);
+}
+
+.title {
+  color: #ffffff;
+  font-size: 38rpx;
+  font-weight: 900;
+}
+
+.credit-log-card {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.54);
+  border-radius: 28rpx;
+  background: rgba(255, 244, 255, 0.88);
+  box-shadow: 0 12rpx 28rpx rgba(62, 24, 128, 0.2);
+  box-sizing: border-box;
+}
+
+.credit-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.credit-log-reason {
+  color: #351556;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.credit-log-delta {
+  flex-shrink: 0;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.delta-plus {
+  color: #16a66f;
+}
+
+.delta-minus {
+  color: #ef4771;
+}
+
+.credit-log-score,
+.credit-log-note,
+.credit-log-time {
+  display: block;
+  margin-top: 12rpx;
+  color: rgba(53, 21, 86, 0.62);
+  font-size: 24rpx;
+  line-height: 34rpx;
+  font-weight: 700;
+}
+
+.credit-log-note {
+  color: rgba(53, 21, 86, 0.8);
+  font-size: 26rpx;
+}
+
+.empty-card {
+  margin-top: 32rpx;
+  min-height: 180rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 28rpx;
+  background: rgba(255, 244, 255, 0.86);
+  color: rgba(53, 21, 86, 0.62);
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.footer {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 23rpx;
+  font-weight: 800;
+}

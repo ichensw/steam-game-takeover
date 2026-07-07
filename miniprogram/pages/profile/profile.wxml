@@ -36,12 +36,26 @@
         <text class="stat-label">参与接龙</text>
       </view>
       <view class="stat-divider"></view>
-      <view class="stat-item credit-stat credit-{{user.creditStatus}}">
+      <view class="stat-item credit-stat credit-{{user.creditStatus}}" bindtap="openCreditHelp">
         <view class="stat-icon stat-credit">
           <image class="stat-credit-icon" src="/assets/icon-credit.svg" mode="aspectFill"></image>
         </view>
         <text class="stat-value">{{user.creditScore}}</text>
         <text class="stat-label">信誉分</text>
+      </view>
+    </view>
+
+    <view class="credit-card credit-card-{{user.creditStatus}}">
+      <view class="credit-card-main" bindtap="openCreditHelp">
+        <view class="credit-card-copy">
+          <text class="credit-card-title">{{creditInfo.title}}</text>
+          <text class="credit-card-desc">{{creditInfo.desc}}</text>
+        </view>
+        <text class="credit-card-badge" wx:if="{{creditInfo.badge}}">{{creditInfo.badge}}</text>
+      </view>
+      <view class="credit-card-actions">
+        <view class="credit-card-action" bindtap="openCreditHelp">信誉说明</view>
+        <view class="credit-card-action" bindtap="openCreditLogs">信誉记录</view>
       </view>
     </view>
 
@@ -83,13 +97,23 @@
       </view>
     </view>
 
-    <view class="feedback-entry" bindtap="openFeedback">
-      <view class="feedback-icon">✎</view>
-      <view class="feedback-copy">
-        <text class="feedback-title">意见反馈</text>
-        <text class="feedback-desc">遇到问题或有建议，告诉我们</text>
+    <view class="feedback-actions">
+      <view class="feedback-entry" bindtap="openFeedback">
+        <view class="feedback-icon">✎</view>
+        <view class="feedback-copy">
+          <text class="feedback-title">提交反馈</text>
+          <text class="feedback-desc">遇到问题或有建议</text>
+        </view>
+        <text class="feedback-arrow">›</text>
       </view>
-      <text class="feedback-arrow">›</text>
+      <view class="feedback-entry" bindtap="openMyFeedbacks">
+        <view class="feedback-icon feedback-icon-muted">✓</view>
+        <view class="feedback-copy">
+          <text class="feedback-title">我的反馈</text>
+          <text class="feedback-desc">查看处理状态</text>
+        </view>
+        <text class="feedback-arrow">›</text>
+      </view>
     </view>
   </view>
 
@@ -122,4 +146,25 @@
     bindsteamidinput="handleSteamIdInput"
     bindsave="saveProfile"
   />
+
+  <view class="credit-help-mask" wx:if="{{showCreditHelp}}" bindtap="closeCreditHelp"></view>
+  <view class="credit-help-sheet" wx:if="{{showCreditHelp}}">
+    <view class="credit-help-title-row">
+      <text class="credit-help-title">信誉分说明</text>
+      <view class="credit-help-close" bindtap="closeCreditHelp">×</view>
+    </view>
+    <view class="credit-help-row">
+      <text class="credit-help-score">70+</text>
+      <text class="credit-help-copy">可正常加入接龙</text>
+    </view>
+    <view class="credit-help-row">
+      <text class="credit-help-score">51-69</text>
+      <text class="credit-help-copy">加入接龙会受限</text>
+    </view>
+    <view class="credit-help-row">
+      <text class="credit-help-score">≤50</text>
+      <text class="credit-help-copy">暂不可参与接龙</text>
+    </view>
+    <text class="credit-help-note">举报核实、失约或违规行为可能影响信誉分；管理员处理后可恢复。</text>
+  </view>
 </scroll-view>

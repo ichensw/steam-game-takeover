@@ -3,6 +3,8 @@
     "pages/index/index",
     "pages/profile/profile",
     "pages/feedback/feedback",
+    "pages/my-feedbacks/my-feedbacks",
+    "pages/credit-logs/credit-logs",
     "pages/my-takeovers/my-takeovers",
     "pages/detail/detail",
     "pages/logs/logs"

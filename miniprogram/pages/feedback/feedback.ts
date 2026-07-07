@@ -123,7 +123,7 @@ Page({
     })
       .then(() => {
         wx.showToast({ title: '反馈已提交', icon: 'success' })
-        setTimeout(() => this.goBack(), 700)
+        setTimeout(() => wx.redirectTo({ url: '/pages/my-feedbacks/my-feedbacks' }), 700)
       })
       .catch(error => wx.showToast({ title: error.message || '提交失败', icon: 'none' }))
       .finally(() => this.setData({ isSubmitting: false }))
