@@ -50,7 +50,7 @@
           class="input"
           value="{{contact}}"
           maxlength="100"
-          placeholder="微信号 / 手机号 / QQ"
+          placeholder="手机号"
           placeholder-class="placeholder"
           bindinput="handleContactInput"
         />
