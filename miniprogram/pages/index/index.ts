@@ -1,7 +1,7 @@
 import { apiRequest, getUserToken, subscribeTakeoverReminder, uploadImage } from '../../utils/api'
 import { enableShareMenu, HOME_SHARE_PATH, HOME_SHARE_TITLE } from '../../utils/share'
 
-type PendingAction = 'view' | 'join' | 'create' | 'profile'
+type PendingAction = 'join' | 'create' | 'profile'
 type Gender = 'male' | 'female'
 type ScheduleType = 'once' | 'daily' | 'range'
 type TimeFilter = 'all' | 'today' | 'tomorrow' | 'daily' | 'week' | 'range'
@@ -1072,22 +1072,12 @@ Page({
         return
       }
 
-      if (!getStoredProfile()) {
-        this.ensureProfile('view', takeoverId)
-        return
-      }
-
       this.navigateToDetail(takeoverId)
     },
 
     handleTakeoverAction(event: WechatMiniprogram.TouchEvent) {
       const takeoverId = event.currentTarget.dataset.id as string
       if (!takeoverId) {
-        return
-      }
-
-      if (!getStoredProfile()) {
-        this.ensureProfile('view', takeoverId)
         return
       }
 

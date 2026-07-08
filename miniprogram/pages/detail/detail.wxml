@@ -44,6 +44,7 @@
         <text class="description-text kook-channel-name">{{takeover.kookChannelName}}</text>
         <button class="copy-button kook-copy-button" bindtap="copyKookInvite">复制</button>
       </view>
+      <text class="kook-guide-text">复制链接，用浏览器打开加入 KOOK。建议提前 10 分钟进频道，到点直接集合开局。</text>
     </view>
 
     <view class="admin-actions" wx:if="{{takeover && canManage && takeover.takeoverState !== 2}}">

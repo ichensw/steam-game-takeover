@@ -487,49 +487,7 @@ Page({
   },
 
   bootstrap() {
-    if (getUserToken()) {
-      this.loadCurrentProfile()
-      this.loadTakeover()
-      return
-    }
-
-    this.setData({ isAuthorizing: true })
-    wx.login({
-      success: ({ code }) => {
-        if (!code) {
-          this.setData({ isAuthorizing: false })
-          wx.showToast({ title: '登录失败，请重试', icon: 'none' })
-          return
-        }
-        apiRequest<LoginResult>({
-          url: '/api/auth/wx-login',
-          method: 'POST',
-          data: { code },
-          tokenType: 'none',
-        })
-          .then(result => {
-            if (result.token) wx.setStorageSync(TOKEN_KEY, result.token)
-            const profile = normalizeUserProfile(result.user)
-            if (profile) {
-              this.applyProfile(profile)
-            } else {
-              wx.removeStorageSync(PROFILE_KEY)
-              this.openProfileSheet()
-            }
-            this.loadTakeover()
-          })
-          .catch(error => {
-            wx.showToast({ title: error.message || '登录失败', icon: 'none' })
-          })
-          .finally(() => {
-            this.setData({ isAuthorizing: false })
-          })
-      },
-      fail: () => {
-        this.setData({ isAuthorizing: false })
-        wx.showToast({ title: '登录失败，请重试', icon: 'none' })
-      },
-    })
+    this.loadTakeover()
   },
 
   applyProfile(profile: UserProfile) {
@@ -553,15 +511,56 @@ Page({
         const profile = normalizeUserProfile(result)
 
         if (profile) this.applyProfile(profile)
-        else this.openProfileSheet()
 
         if (profile && this.data.takeover) {
           this.setData({ takeover: this.withReportState(this.data.takeover) })
         }
       })
-      .catch(() => {
-        if (!getStoredProfile()) this.openProfileSheet()
+      .catch(() => {})
+  },
+
+  ensureUserSession() {
+    if (getUserToken()) return Promise.resolve(true)
+    if (this.data.isAuthorizing) return Promise.resolve(false)
+
+    this.setData({ isAuthorizing: true })
+    return new Promise<boolean>(resolve => {
+      wx.login({
+        success: ({ code }) => {
+          if (!code) {
+            this.setData({ isAuthorizing: false })
+            wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+            resolve(false)
+            return
+          }
+          apiRequest<LoginResult>({
+            url: '/api/auth/wx-login',
+            method: 'POST',
+            data: { code },
+            tokenType: 'none',
+          })
+            .then(result => {
+              if (result.token) wx.setStorageSync(TOKEN_KEY, result.token)
+              const profile = normalizeUserProfile(result.user)
+              if (profile) this.applyProfile(profile)
+              else wx.removeStorageSync(PROFILE_KEY)
+              resolve(true)
+            })
+            .catch(error => {
+              wx.showToast({ title: error.message || '登录失败', icon: 'none' })
+              resolve(false)
+            })
+            .finally(() => {
+              this.setData({ isAuthorizing: false })
+            })
+        },
+        fail: () => {
+          this.setData({ isAuthorizing: false })
+          wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+          resolve(false)
+        },
       })
+    })
   },
 
   openProfileSheet() {
@@ -933,26 +932,28 @@ Page({
       return
     }
 
-    if (!this.ensureProfileReady()) {
-      return
-    }
-
     if (this.data.hasJoined) {
       this.leaveTakeover()
       return
     }
 
-    const profile = getStoredProfile()
-    if (profile && !canJoinWithCredit(profile.creditScore)) {
-      wx.showToast({ title: '信誉分低于 70，暂无法参与接龙', icon: 'none' })
-      return
-    }
+    this.ensureUserSession().then((ready: boolean) => {
+      if (!ready || !this.ensureProfileReady()) {
+        return
+      }
 
-    this.setData({
-      showRemarkSheet: true,
-      remarkMode: 'join',
-      memberRemark: '',
-      memberRemarkError: '',
+      const profile = getStoredProfile()
+      if (profile && !canJoinWithCredit(profile.creditScore)) {
+        wx.showToast({ title: '信誉分低于 70，暂无法参与接龙', icon: 'none' })
+        return
+      }
+
+      this.setData({
+        showRemarkSheet: true,
+        remarkMode: 'join',
+        memberRemark: '',
+        memberRemarkError: '',
+      })
     })
   },
 
@@ -1143,10 +1144,6 @@ Page({
   },
 
   openReportSheet(event: WechatMiniprogram.TouchEvent) {
-    if (!this.ensureProfileReady()) {
-      return
-    }
-
     const userId = event.currentTarget.dataset.userid as string
     const openid = event.currentTarget.dataset.openid as string
     const nickname = event.currentTarget.dataset.nickname as string
@@ -1178,14 +1175,20 @@ Page({
       return
     }
 
-    this.setData({
-      showReportSheet: true,
-      reportUserId: userId,
-      reportUserKey,
-      reportNickname: nickname || '玩家',
-      reportContent: '',
-      reportImageUrl: '',
-      reportImageUrls: [],
+    this.ensureUserSession().then((ready: boolean) => {
+      if (!ready || !this.ensureProfileReady()) {
+        return
+      }
+
+      this.setData({
+        showReportSheet: true,
+        reportUserId: userId,
+        reportUserKey,
+        reportNickname: nickname || '玩家',
+        reportContent: '',
+        reportImageUrl: '',
+        reportImageUrls: [],
+      })
     })
   },
 

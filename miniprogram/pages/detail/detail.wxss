@@ -261,6 +261,18 @@ button::after {
   width: 108rpx;
 }
 
+.kook-guide-text {
+  display: block;
+  margin-top: 14rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.56);
+  color: #6c3c86;
+  font-size: 24rpx;
+  line-height: 36rpx;
+  font-weight: 700;
+}
+
 .info-row {
   display: flex;
   align-items: center;
