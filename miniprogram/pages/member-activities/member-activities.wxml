@@ -1,0 +1,102 @@
+<scroll-view
+  class="page"
+  scroll-y
+  refresher-enabled
+  refresher-triggered="{{isRefreshing}}"
+  lower-threshold="100"
+  bindrefresherrefresh="refresh"
+  bindscrolltolower="loadMore"
+>
+  <image class="bg" src="https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/background/tutuwo-neon-bg.png" mode="aspectFill"></image>
+  <view class="shade"></view>
+
+  <view class="shell">
+    <view class="nav">
+      <view class="back-button" bindtap="goBack">‹</view>
+      <text class="title">进出记录</text>
+    </view>
+
+    <view class="search-box">
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="搜索昵称 / SteamID / 备注 / 加入退出"
+        placeholder-class="placeholder"
+        bindinput="handleSearchInput"
+      />
+      <text class="search-icon" wx:if="{{!keyword}}">⌕</text>
+      <view class="search-clear" wx:else bindtap="clearSearch">
+        <view class="search-clear-line search-clear-line-a"></view>
+        <view class="search-clear-line search-clear-line-b"></view>
+      </view>
+    </view>
+
+    <view class="activity-list">
+      <view class="activity-card {{takeoverState === 2 && !item.isSelf ? 'activity-card-reportable' : ''}}" wx:for="{{list}}" wx:key="id">
+        <image class="avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="activity-main">
+          <view class="name-line">
+            <text class="name">{{item.nickName}}</text>
+            <text class="badge badge-{{item.action}}">{{item.actionText}}</text>
+          </view>
+          <view class="steam-line" wx:if="{{item.steamId}}">
+            <text>SteamID</text>
+            <text>{{item.steamId}}</text>
+          </view>
+          <text class="remark" wx:if="{{item.remark}}">备注：{{item.remark}}</text>
+          <text class="time">{{item.createdAt}}</text>
+        </view>
+        <button
+          class="report-button {{!item.canReport ? 'report-button-disabled' : ''}}"
+          wx:if="{{takeoverState === 2 && !item.isSelf}}"
+          disabled="{{!item.canReport}}"
+          data-userid="{{item.userId}}"
+          data-userkey="{{item.userId || item.openid}}"
+          data-isself="{{item.isSelf}}"
+          data-nickname="{{item.nickName}}"
+          data-reporttype="{{item.action === 2 ? 'leave_early' : 'no_show'}}"
+          bindtap="openReportSheet"
+        >{{item.reportStatus}}</button>
+      </view>
+    </view>
+
+    <view class="empty-card" wx:if="{{!list.length && !isLoading}}">
+      <text>没有找到进出记录</text>
+    </view>
+
+    <view class="footer" wx:if="{{list.length}}">
+      <text wx:if="{{isLoadingMore}}">加载中...</text>
+      <text wx:elif="{{!hasMore}}">已经到底啦</text>
+    </view>
+  </view>
+</scroll-view>
+
+<view class="report-mask" wx:if="{{showReportSheet}}" bindtap="closeReportSheet">
+  <view class="report-sheet" catchtap="noop">
+    <view class="sheet-head">
+      <text class="sheet-title">举报 {{reportNickname}}</text>
+      <text class="sheet-close" bindtap="closeReportSheet">×</text>
+    </view>
+
+    <view class="report-types">
+      <button
+        class="report-type {{reportType === item.value ? 'report-type-active' : ''}}"
+        wx:for="{{reportTypes}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="selectReportType"
+      >{{item.label}}</button>
+    </view>
+
+    <textarea
+      class="report-input"
+      value="{{reportContent}}"
+      maxlength="500"
+      placeholder="补充说明情况"
+      placeholder-class="placeholder"
+      bindinput="handleReportContentInput"
+    ></textarea>
+
+    <button class="submit-button" loading="{{isSubmittingReport}}" disabled="{{isSubmittingReport}}" bindtap="submitReport">提交举报</button>
+  </view>
+</view>

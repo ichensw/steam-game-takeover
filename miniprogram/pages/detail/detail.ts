@@ -41,6 +41,15 @@ type UserProfile = {
 
 type Participant = UserProfile
 
+type ReportType = 'no_show' | 'leave_early' | 'disruptive' | 'offensive' | 'other'
+
+type MemberActivity = UserProfile & {
+  id: string
+  action: number
+  actionText: string
+  createdAt: string
+}
+
 type Takeover = {
   id: string
   title: string
@@ -53,6 +62,7 @@ type Takeover = {
   avatarUrl: string
   participantAvatars: string[]
   participants: Participant[]
+  memberActivities: MemberActivity[]
   hasJoined: boolean
   isCreator: boolean
   canManage: boolean
@@ -100,6 +110,13 @@ const getCreditScore = (raw: Record<string, any> | null | undefined) =>
 const getCreditStatus = (score: number) => (score <= 50 ? 'disabled' : score < 70 ? 'limited' : 'normal')
 const canJoinWithCredit = (score?: number) => score === undefined || score >= 70
 const isTrue = (value: unknown) => value === true || value === 1 || value === '1' || value === 'true'
+const REPORT_TYPES: { label: string; value: ReportType }[] = [
+  { label: '到点不来', value: 'no_show' },
+  { label: '中途跳车', value: 'leave_early' },
+  { label: '消极捣乱', value: 'disruptive' },
+  { label: '言语攻击', value: 'offensive' },
+  { label: '其他', value: 'other' },
+]
 
 
 const refreshPreviousHome = (page: WechatMiniprogram.Page.Instance<WechatMiniprogram.IAnyObject, WechatMiniprogram.IAnyObject>) => {
@@ -164,6 +181,18 @@ const normalizeParticipant = (rawParticipant: Record<string, any>): Participant 
     creditStatus: rawParticipant.creditStatus || rawParticipant.credit_status || getCreditStatus(creditScore),
     hasReported: isTrue(rawParticipant.hasReported) || isTrue(rawParticipant.has_reported) || isTrue(rawParticipant.reported),
     isSelf: isTrue(rawParticipant.isSelf) || isTrue(rawParticipant.is_self),
+  }
+}
+
+const normalizeMemberActivity = (rawActivity: Record<string, any>): MemberActivity => {
+  const participant = normalizeParticipant(rawActivity)
+  const action = Number(rawActivity.action || 1)
+  return {
+    ...participant,
+    id: String(rawActivity.id || `${participant.userId || participant.openid || ''}-${rawActivity.createdAt || rawActivity.created_at || ''}`),
+    action,
+    actionText: rawActivity.actionText || rawActivity.action_text || (action === 2 ? '退出' : '加入'),
+    createdAt: rawActivity.createdAt || rawActivity.created_at || '',
   }
 }
 
@@ -331,6 +360,10 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
   const participants = Array.isArray(membersSource)
     ? membersSource.map((member: Record<string, any>) => normalizeParticipant(member))
     : []
+  const activitySource = rawTakeover.memberActivities || rawTakeover.member_activities || []
+  const memberActivities = Array.isArray(activitySource)
+    ? activitySource.map((activity: Record<string, any>) => normalizeMemberActivity(activity))
+    : []
   const joined = Number(rawTakeover.joinedCount || rawTakeover.joined_count || rawTakeover.joined || participants.length || 0)
   const limit = Number(rawTakeover.participantLimit || rawTakeover.participant_limit || rawTakeover.limit || 0)
   const numericId = String(rawTakeover.id || '')
@@ -366,6 +399,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     avatarUrl: rawTakeover.avatarUrl || rawTakeover.avatar_url || (participants[0] && participants[0].avatarUrl) || FEMALE_AVATAR_URL,
     participantAvatars: participants.map(participant => participant.avatarUrl).slice(0, 4),
     participants,
+    memberActivities,
     hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
     isCreator: !!(rawTakeover.isCreator || rawTakeover.is_creator),
     canManage: !!(rawTakeover.canManage || rawTakeover.can_manage),
@@ -455,6 +489,8 @@ Page({
     reportUserId: '',
     reportUserKey: '',
     reportNickname: '',
+    reportType: 'no_show' as ReportType,
+    reportTypes: REPORT_TYPES,
     reportContent: '',
     reportImageUrl: '',
     reportImageUrls: [] as string[],
@@ -909,6 +945,18 @@ Page({
           reportStatus: isSelf ? '自己' : hasReported ? '已举报' : '举报',
         }
       }),
+      memberActivities: takeover.memberActivities.map(activity => {
+        const userKey = getUserKey(activity)
+        const isSelf = !!activity.isSelf
+        const hasReported = !!activity.hasReported || (!!userKey && keys.indexOf(userKey) >= 0)
+        return {
+          ...activity,
+          isSelf,
+          hasReported,
+          canReport: !isSelf && !hasReported,
+          reportStatus: isSelf ? '自己' : hasReported ? '已举报' : '举报',
+        }
+      }),
     }
   },
 
@@ -1143,14 +1191,22 @@ Page({
     })
   },
 
+  openMemberActivities() {
+    const takeover = this.data.takeover
+    if (!takeover) return
+    wx.navigateTo({
+      url: `/pages/member-activities/member-activities?id=${encodeURIComponent(String(takeover.id))}`,
+    })
+  },
+
   openReportSheet(event: WechatMiniprogram.TouchEvent) {
     const userId = event.currentTarget.dataset.userid as string
     const openid = event.currentTarget.dataset.openid as string
     const nickname = event.currentTarget.dataset.nickname as string
-    const index = Number(event.currentTarget.dataset.index)
+    const isSelf = isTrue(event.currentTarget.dataset.isself)
+    const reportType = (event.currentTarget.dataset.reporttype as ReportType) || 'no_show'
     const reportUserKey = userId || openid
     const takeover = this.data.takeover
-    const targetUser = takeover && index >= 0 ? takeover.participants[index] : null
 
     if (!takeover || takeover.takeoverState !== 2) {
       wx.showToast({ title: '接龙结束后才可以举报', icon: 'none' })
@@ -1163,11 +1219,8 @@ Page({
       wx.showToast({ title: '用户信息异常，无法举报', icon: 'none' })
       return
     }
-    if (targetUser && targetUser.isSelf) {
+    if (isSelf) {
       wx.showToast({ title: '不能举报自己', icon: 'none' })
-      return
-    }
-    if (!targetUser) {
       return
     }
     if (this.data.reportedUserKeys.indexOf(reportUserKey) >= 0) {
@@ -1185,6 +1238,7 @@ Page({
         reportUserId: userId,
         reportUserKey,
         reportNickname: nickname || '玩家',
+        reportType,
         reportContent: '',
         reportImageUrl: '',
         reportImageUrls: [],
@@ -1201,6 +1255,13 @@ Page({
 
   handleReportContentInput(event: WechatMiniprogram.Input) {
     this.setData({ reportContent: event.detail.value })
+  },
+
+  selectReportType(event: WechatMiniprogram.TouchEvent) {
+    const reportType = event.currentTarget.dataset.value as ReportType
+    if (REPORT_TYPES.some(item => item.value === reportType)) {
+      this.setData({ reportType })
+    }
   },
 
   chooseReportImage(event: WechatMiniprogram.CustomEvent<{ count?: number }>) {
@@ -1266,7 +1327,10 @@ Page({
     const takeover = this.data.takeover
     const content = this.data.reportContent.trim()
     const reportUserKey = this.data.reportUserKey
-    const targetUser = takeover ? takeover.participants.find(participant => getUserKey(participant) === reportUserKey || participant.userId === this.data.reportUserId) : null
+    const targetUser = takeover
+      ? takeover.participants.find(participant => getUserKey(participant) === reportUserKey || participant.userId === this.data.reportUserId)
+        || takeover.memberActivities.find(activity => getUserKey(activity) === reportUserKey || activity.userId === this.data.reportUserId)
+      : null
 
     if (!takeover || !this.data.reportUserId || !reportUserKey || this.data.isSubmittingReport) {
       return
@@ -1290,6 +1354,7 @@ Page({
       method: 'POST',
       data: {
         reportedUserId: Number(this.data.reportUserId),
+        reportType: this.data.reportType,
         content,
         imageUrls: this.data.reportImageUrls,
       },

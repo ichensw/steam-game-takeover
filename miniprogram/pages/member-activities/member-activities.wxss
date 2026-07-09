@@ -1,0 +1,371 @@
+page {
+  min-height: 100vh;
+  background: #160750;
+  color: #ffffff;
+}
+
+button::after {
+  border: 0;
+}
+
+.page {
+  position: relative;
+  height: 100vh;
+}
+
+.bg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+}
+
+.shade {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(13, 4, 58, 0.12), rgba(22, 7, 80, 0.48));
+}
+
+.shell {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  padding: 78rpx 34rpx 72rpx;
+  box-sizing: border-box;
+}
+
+.nav {
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+}
+
+.back-button {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 56rpx;
+  line-height: 56rpx;
+  box-shadow: 0 0 22rpx rgba(255, 118, 238, 0.32);
+  backdrop-filter: blur(14rpx);
+}
+
+.title {
+  color: #ffffff;
+  font-size: 38rpx;
+  font-weight: 900;
+}
+
+.search-box {
+  height: 82rpx;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 0 22rpx;
+  margin: 40rpx 0 28rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.68);
+  border-radius: 999rpx;
+  background: rgba(255, 244, 255, 0.76);
+  box-shadow: 0 10rpx 24rpx rgba(126, 76, 255, 0.22), inset 0 0 18rpx rgba(255, 255, 255, 0.22);
+  box-sizing: border-box;
+  backdrop-filter: blur(14rpx);
+}
+
+.search-input {
+  min-width: 0;
+  flex: 1;
+  height: 68rpx;
+  color: #351556;
+  font-size: 28rpx;
+  line-height: 68rpx;
+  font-weight: 700;
+}
+
+.placeholder {
+  color: rgba(53, 21, 86, 0.42);
+}
+
+.search-icon {
+  width: 52rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #b172f1;
+  font-size: 52rpx;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.search-clear {
+  position: relative;
+  width: 48rpx;
+  height: 48rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255, 105, 188, 0.18);
+}
+
+.search-clear-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22rpx;
+  height: 5rpx;
+  border-radius: 999rpx;
+  background: #ff5aac;
+  transform-origin: center;
+}
+
+.search-clear-line-a {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.search-clear-line-b {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.activity-list {
+  display: grid;
+  gap: 18rpx;
+}
+
+.activity-card {
+  display: grid;
+  grid-template-columns: 78rpx minmax(0, 1fr);
+  gap: 18rpx;
+  align-items: center;
+  padding: 22rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 241, 255, 0.94);
+  box-shadow: 0 12rpx 28rpx rgba(62, 24, 128, 0.18);
+  box-sizing: border-box;
+}
+
+.activity-card-reportable {
+  grid-template-columns: 78rpx minmax(0, 1fr) 108rpx;
+}
+
+.avatar {
+  width: 78rpx;
+  height: 78rpx;
+  border-radius: 50%;
+  background: #f5d8ff;
+}
+
+.activity-main {
+  min-width: 0;
+  display: grid;
+  gap: 8rpx;
+}
+
+.name-line,
+.steam-line {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.name,
+.steam-line,
+.remark,
+.time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name {
+  color: #351556;
+  font-size: 28rpx;
+  line-height: 36rpx;
+  font-weight: 900;
+}
+
+.badge {
+  flex-shrink: 0;
+  height: 34rpx;
+  padding: 0 12rpx;
+  border-radius: 999rpx;
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+  font-size: 21rpx;
+  line-height: 34rpx;
+  font-weight: 900;
+}
+
+.badge-2 {
+  background: rgba(239, 68, 68, 0.1);
+  color: #e54868;
+}
+
+.steam-line {
+  color: rgba(53, 21, 86, 0.58);
+  font-size: 22rpx;
+  line-height: 30rpx;
+  font-weight: 700;
+}
+
+.remark {
+  color: rgba(53, 21, 86, 0.78);
+  font-size: 24rpx;
+  line-height: 32rpx;
+  font-weight: 700;
+}
+
+.time {
+  color: rgba(53, 21, 86, 0.44);
+  font-size: 22rpx;
+  line-height: 30rpx;
+  font-weight: 700;
+}
+
+.report-button {
+  width: 108rpx;
+  min-width: 108rpx;
+  max-width: 108rpx;
+  height: 52rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 999rpx;
+  background: rgba(239, 68, 68, 0.08);
+  border: 2rpx solid rgba(239, 68, 68, 0.22);
+  color: #e54868;
+  font-size: 22rpx;
+  line-height: 48rpx;
+  font-weight: 900;
+  box-sizing: border-box;
+}
+
+.report-button-disabled {
+  opacity: 0.5;
+}
+
+.empty-card {
+  height: 150rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 28rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 241, 255, 0.94);
+  color: rgba(29, 21, 61, 0.58);
+  font-size: 26rpx;
+  font-weight: 700;
+  box-shadow: 0 12rpx 28rpx rgba(62, 24, 128, 0.18);
+}
+
+.footer {
+  height: 86rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.report-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(13, 4, 58, 0.46);
+}
+
+.report-sheet {
+  width: 100%;
+  padding: 30rpx 30rpx calc(36rpx + env(safe-area-inset-bottom));
+  border-radius: 34rpx 34rpx 0 0;
+  background: #fff5ff;
+  box-sizing: border-box;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.sheet-title {
+  min-width: 0;
+  color: #351556;
+  font-size: 32rpx;
+  line-height: 42rpx;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-close {
+  width: 56rpx;
+  height: 56rpx;
+  flex-shrink: 0;
+  color: rgba(53, 21, 86, 0.56);
+  font-size: 44rpx;
+  line-height: 56rpx;
+  text-align: center;
+}
+
+.report-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 24rpx;
+}
+
+.report-type {
+  height: 58rpx;
+  margin: 0;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: rgba(140, 93, 255, 0.1);
+  color: #6d3dd8;
+  font-size: 24rpx;
+  line-height: 58rpx;
+  font-weight: 900;
+}
+
+.report-type-active {
+  background: #8c5dff;
+  color: #ffffff;
+}
+
+.report-input {
+  width: 100%;
+  height: 180rpx;
+  margin-top: 24rpx;
+  padding: 20rpx;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.82);
+  color: #351556;
+  font-size: 26rpx;
+  line-height: 36rpx;
+  box-sizing: border-box;
+}
+
+.submit-button {
+  width: 100%;
+  height: 84rpx;
+  margin: 24rpx 0 0;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #ff5aac, #8c5dff);
+  color: #ffffff;
+  font-size: 28rpx;
+  line-height: 84rpx;
+  font-weight: 900;
+  box-shadow: 0 14rpx 28rpx rgba(140, 93, 255, 0.24);
+}

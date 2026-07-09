@@ -1122,6 +1122,30 @@ button::after {
   color: rgba(53, 21, 86, 0.36);
 }
 
+.report-type-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.report-type-option {
+  height: 58rpx;
+  margin: 0;
+  padding: 0 20rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.76);
+  color: rgba(53, 21, 86, 0.66);
+  font-size: 23rpx;
+  line-height: 58rpx;
+  font-weight: 900;
+}
+
+.report-type-active {
+  background: rgba(239, 68, 68, 0.12);
+  color: #e54868;
+  box-shadow: inset 0 0 0 2rpx rgba(239, 68, 68, 0.2);
+}
+
 .remark-textarea {
   height: 190rpx;
   padding: 24rpx 24rpx 50rpx;
@@ -1565,6 +1589,53 @@ button::after {
   border: 2rpx solid rgba(239, 68, 68, 0.22);
   color: #e54868;
   box-shadow: none;
+}
+
+.activity-section {
+  margin-top: 22rpx;
+}
+
+.activity-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  min-height: 96rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.58);
+  box-sizing: border-box;
+}
+
+.activity-entry-main {
+  min-width: 0;
+  display: grid;
+  gap: 8rpx;
+}
+
+.activity-entry-title {
+  color: #351556;
+  font-size: 28rpx;
+  line-height: 36rpx;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-entry-sub {
+  color: rgba(53, 21, 86, 0.46);
+  font-size: 24rpx;
+  line-height: 32rpx;
+  font-weight: 700;
+}
+
+.activity-entry-arrow {
+  flex-shrink: 0;
+  color: #8c5dff;
+  font-size: 46rpx;
+  line-height: 46rpx;
+  font-weight: 900;
 }
 
 /* Floating primary action */

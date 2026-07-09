@@ -80,10 +80,29 @@
             </view>
             <view class="member-actions" wx:if="{{item.steamId || (takeover.takeoverState === 2 && !item.isSelf)}}">
               <button class="copy-button" wx:if="{{item.steamId}}" data-steamid="{{item.steamId}}" bindtap="copySteamId">复制</button>
-              <button class="report-button {{!item.canReport ? 'report-button-disabled' : ''}}" wx:if="{{takeover.takeoverState === 2 && !item.isSelf}}" disabled="{{!item.canReport}}" data-index="{{index}}" data-userid="{{item.userId}}" data-openid="{{item.openid}}" data-nickname="{{item.nickName}}" bindtap="openReportSheet">{{item.reportStatus}}</button>
+              <button class="report-button {{!item.canReport ? 'report-button-disabled' : ''}}" wx:if="{{takeover.takeoverState === 2 && !item.isSelf}}" disabled="{{!item.canReport}}" data-reporttype="no_show" data-isself="{{item.isSelf}}" data-userid="{{item.userId}}" data-openid="{{item.openid}}" data-nickname="{{item.nickName}}" bindtap="openReportSheet">{{item.reportStatus}}</button>
             </view>
           </view>
         </view>
+      </view>
+    </view>
+
+    <view class="member-section activity-section" wx:if="{{takeover}}" bindtap="openMemberActivities">
+      <view class="section-head">
+        <text class="section-title">进出记录</text>
+        <text class="section-count">{{takeover.memberActivities.length}}</text>
+      </view>
+
+      <view class="activity-entry">
+        <view class="activity-entry-main" wx:if="{{takeover.memberActivities.length}}">
+          <text class="activity-entry-title">{{takeover.memberActivities[0].nickName}} {{takeover.memberActivities[0].actionText}}</text>
+          <text class="activity-entry-sub">{{takeover.memberActivities[0].createdAt}}</text>
+        </view>
+        <view class="activity-entry-main" wx:else>
+          <text class="activity-entry-title">暂无进出记录</text>
+          <text class="activity-entry-sub">点击查看完整记录</text>
+        </view>
+        <text class="activity-entry-arrow">›</text>
       </view>
     </view>
 
@@ -232,6 +251,12 @@
     </view>
 
     <view class="edit-form">
+      <view class="edit-field">
+        <text class="edit-label">举报类型</text>
+        <view class="report-type-grid">
+          <button class="report-type-option {{reportType === item.value ? 'report-type-active' : ''}}" wx:for="{{reportTypes}}" wx:key="value" data-value="{{item.value}}" bindtap="selectReportType">{{item.label}}</button>
+        </view>
+      </view>
       <view class="edit-field">
         <text class="edit-label">举报内容</text>
         <textarea class="admin-textarea report-textarea" value="{{reportContent}}" maxlength="500" placeholder="请描述违规行为、时间或相关情况" placeholder-class="report-placeholder" bindinput="handleReportContentInput" />
