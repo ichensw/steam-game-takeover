@@ -187,8 +187,16 @@ button::after {
   transform: translateY(-3rpx);
 }
 
-.stat-emoji-target {
-  transform: translate(3rpx, -3rpx);
+.stat-gamepad-icon {
+  width: 38rpx;
+  height: 38rpx;
+  transform: none;
+}
+
+.stat-participate-icon {
+  width: 40rpx;
+  height: 40rpx;
+  transform: none;
 }
 
 .stat-pink {

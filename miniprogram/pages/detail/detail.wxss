@@ -123,6 +123,7 @@ button::after {
   z-index: 2;
   display: inline-flex;
   align-items: center;
+  gap: 6rpx;
   max-width: 260rpx;
   height: 50rpx;
   padding: 0 18rpx;
@@ -135,6 +136,18 @@ button::after {
   box-shadow: 0 10rpx 22rpx rgba(124, 76, 255, 0.28);
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.host-badge-icon {
+  width: 30rpx;
+  height: 30rpx;
+  flex-shrink: 0;
+}
+
+.host-badge-name {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 

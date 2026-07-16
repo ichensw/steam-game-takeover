@@ -6,7 +6,7 @@
 
   <view class="card-tag-row">
     <view class="creator-badge">
-      <text class="creator-icon">🎮</text>
+      <image class="creator-icon" src="/assets/icon-gamepad.svg" mode="aspectFit"></image>
       <text class="creator-name">{{takeover.host || takeover.creatorName || '兔兔窝'}}</text>
     </view>
   </view>

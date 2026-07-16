@@ -185,9 +185,9 @@
 }
 
 .creator-icon {
-  color: #ffffff;
-  font-size: 32rpx;
-  line-height: 1;
+  width: 32rpx;
+  height: 32rpx;
+  flex-shrink: 0;
 }
 
 .creator-name {

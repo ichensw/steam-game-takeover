@@ -13,7 +13,10 @@
 
     <view class="hero-card" wx:if="{{takeover}}">
       <image class="hero-cover" src="{{takeover.coverImage}}" mode="aspectFit"></image>
-      <view class="host-badge">🎮 {{takeover.host || '兔兔窝'}}</view>
+      <view class="host-badge">
+        <image class="host-badge-icon" src="/assets/icon-gamepad.svg" mode="aspectFit"></image>
+        <text class="host-badge-name">{{takeover.host || '兔兔窝'}}</text>
+      </view>
       <view class="status-badge status-{{takeover.statusTone}}">{{takeover.statusLabel}}</view>
       <text class="hero-title">{{takeover.title}}</text>
 
