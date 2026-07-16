@@ -1909,6 +1909,10 @@ Page({
       }
 
       const editingTakeover = allTakeovers.find(takeover => takeover.id === this.data.editingTakeoverId)
+      if (!editingTakeover && !this.data.selectedKookChannelId && !this.data.steamId.trim()) {
+        wx.showToast({ title: '未选择 KOOK 频道时，请先填写 SteamID', icon: 'none' })
+        return
+      }
 
       const schedule = this.buildCreateSchedule(scheduleType, time)
       const payload = buildTakeoverPayload(

@@ -66,6 +66,7 @@ type Takeover = {
   hasJoined: boolean
   isCreator: boolean
   canManage: boolean
+  currentMemberState: number
   categoryLabel: string
   cardTags: string[]
   statusLabel: string
@@ -191,7 +192,7 @@ const normalizeMemberActivity = (rawActivity: Record<string, any>): MemberActivi
     ...participant,
     id: String(rawActivity.id || `${participant.userId || participant.openid || ''}-${rawActivity.createdAt || rawActivity.created_at || ''}`),
     action,
-    actionText: rawActivity.actionText || rawActivity.action_text || (action === 2 ? '退出' : '加入'),
+    actionText: rawActivity.actionText || rawActivity.action_text || (action === 3 ? '被踢出' : action === 2 ? '退出' : '加入'),
     createdAt: rawActivity.createdAt || rawActivity.created_at || '',
   }
 }
@@ -403,6 +404,7 @@ const normalizeTakeover = (rawTakeover: Record<string, any>): Takeover => {
     hasJoined: !!(rawTakeover.hasJoined || rawTakeover.has_joined),
     isCreator: !!(rawTakeover.isCreator || rawTakeover.is_creator),
     canManage: !!(rawTakeover.canManage || rawTakeover.can_manage),
+    currentMemberState: Number(rawTakeover.currentMemberState || rawTakeover.current_member_state || 0),
     categoryLabel: rawTakeover.categoryLabel || rawTakeover.category_label || rawTakeover.gameName || rawTakeover.game_name || CARD_CATEGORIES[numericId % CARD_CATEGORIES.length],
     cardTags: [
       rawTakeover.teamType || rawTakeover.team_type || (limit <= 4 ? '四排' : '五排'),
@@ -451,6 +453,11 @@ Page({
     isLoading: false,
     isJoining: false,
     isLeaving: false,
+    isKicking: false,
+    isBlocking: false,
+    showMemberManageSheet: false,
+    manageUserId: '',
+    manageNickname: '',
     joinButtonText: '加入队伍',
     hasJoined: false,
     isCreator: false,
@@ -964,6 +971,10 @@ Page({
     const hasJoined = takeover.hasJoined
     const isFull = takeover.limit > 0 && takeover.joined >= takeover.limit
 
+    if (takeover.takeoverState === 2) {
+      return { hasJoined: false, isCreator: takeover.isCreator, joinButtonText: '队伍已结束', canJoin: false }
+    }
+
     if (hasJoined) {
       return { hasJoined: true, isCreator: takeover.isCreator, joinButtonText: '退出队伍', canJoin: true }
     }
@@ -1162,6 +1173,105 @@ Page({
           })
           .finally(() => {
             this.setData({ isLeaving: false })
+          })
+      },
+    })
+  },
+
+  openMemberManageSheet(event: WechatMiniprogram.TouchEvent) {
+    const userId = String(event.currentTarget.dataset.userid || '')
+    const nickname = String(event.currentTarget.dataset.nickname || '该玩家')
+    if (!this.data.canManage || !userId) {
+      return
+    }
+
+    this.setData({
+      showMemberManageSheet: true,
+      manageUserId: userId,
+      manageNickname: nickname,
+    })
+  },
+
+  closeMemberManageSheet() {
+    if (this.data.isKicking || this.data.isBlocking) {
+      return
+    }
+    this.setData({ showMemberManageSheet: false, manageUserId: '', manageNickname: '' })
+  },
+
+  kickSelectedMember() {
+    this.kickMember(this.data.manageUserId, this.data.manageNickname)
+  },
+
+  blockSelectedMember() {
+    this.blockMember(this.data.manageUserId, this.data.manageNickname)
+  },
+
+  kickMember(userId: string, nickname: string) {
+    const takeover = this.data.takeover
+    if (!takeover || !this.data.canManage || !userId || this.data.isKicking) {
+      return
+    }
+
+    wx.showModal({
+      title: '踢出队友',
+      content: `确定将 ${nickname} 移出当前队伍吗？对方仍可重新加入。`,
+      confirmText: '踢出',
+      confirmColor: '#fb7185',
+      success: ({ confirm }) => {
+        if (!confirm) return
+
+        this.setData({ isKicking: true })
+        apiRequest<{ joinedCount?: number }>({
+          url: `/api/takeovers/${takeover.id}/members/${userId}/kick`,
+          method: 'POST',
+        })
+          .then(() => {
+            this.setData({ showMemberManageSheet: false, manageUserId: '', manageNickname: '' })
+            wx.showToast({ title: '已踢出', icon: 'success' })
+            refreshPreviousHome(this)
+            this.loadTakeover()
+          })
+          .catch(error => {
+            wx.showToast({ title: error.message || '操作失败', icon: 'none' })
+          })
+          .finally(() => {
+            this.setData({ isKicking: false })
+          })
+      },
+    })
+  },
+
+  blockMember(userId: string, nickname: string) {
+    const takeover = this.data.takeover
+    if (!takeover || !takeover.isCreator || !userId || this.data.isBlocking) {
+      return
+    }
+
+    wx.showModal({
+      title: '拉黑玩家',
+      content: `拉黑后会将 ${nickname} 移出当前队伍，对方也不能再加入你发起的队伍。确定拉黑吗？`,
+      confirmText: '拉黑',
+      confirmColor: '#fb7185',
+      success: ({ confirm }) => {
+        if (!confirm) return
+
+        this.setData({ isBlocking: true })
+        apiRequest<{ blocked?: boolean; kicked?: boolean; joinedCount?: number }>({
+          url: `/api/takeovers/${takeover.id}/members/${userId}/block`,
+          method: 'POST',
+        })
+          .then(result => {
+            this.setData({ showMemberManageSheet: false, manageUserId: '', manageNickname: '' })
+            wx.showToast({ title: result && result.kicked ? '已拉黑并移出' : '已拉黑', icon: 'success' })
+            refreshPreviousHome(this)
+            this.loadTakeover()
+          })
+          .catch(error => {
+            wx.showToast({ title: error.message || '操作失败', icon: 'none' })
+          })
+          .finally(() => {
+            this.setData({ isBlocking: false })
           })
       },
     })

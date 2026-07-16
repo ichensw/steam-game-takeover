@@ -963,6 +963,80 @@ button::after {
   overflow-y: auto;
 }
 
+.manage-sheet {
+  left: 40rpx;
+  right: 40rpx;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  padding: 28rpx;
+  border-radius: 30rpx;
+  background: #faebff;
+  box-shadow: 0 22rpx 54rpx rgba(39, 12, 96, 0.34);
+  overflow: hidden;
+}
+
+.manage-sheet .sheet-title-row {
+  margin-bottom: 24rpx;
+}
+
+.manage-sheet .sheet-title {
+  color: #351556;
+}
+
+.manage-sheet .close-button {
+  width: 54rpx;
+  height: 54rpx;
+  background: rgba(124, 60, 255, 0.12);
+  color: #7c3cff;
+  font-weight: 700;
+}
+
+.manage-action-list {
+  display: flex;
+  gap: 14rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.manage-action {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  height: 82rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22rpx;
+  box-sizing: border-box;
+  text-align: center;
+  overflow: hidden;
+}
+
+.manage-action-kick {
+  background: linear-gradient(135deg, rgba(255, 120, 183, 0.18) 0%, rgba(255, 95, 143, 0.13) 100%);
+  box-shadow: inset 0 0 0 2rpx rgba(255, 95, 143, 0.18);
+}
+
+.manage-action-block {
+  background: rgba(53, 21, 86, 0.08);
+  box-shadow: inset 0 0 0 2rpx rgba(111, 58, 184, 0.12);
+}
+
+.manage-action-title {
+  color: #351556;
+  font-size: 26rpx;
+  line-height: 82rpx;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.manage-action-kick .manage-action-title {
+  color: #e54868;
+}
+
 .report-sheet .sheet-handle {
   width: 82rpx;
   margin-bottom: 20rpx;
@@ -1430,9 +1504,11 @@ button::after {
 /* Member card polish */
 .member-section .member-list {
   gap: 16rpx;
+  overflow: visible;
 }
 
 .member-section .member-row {
+  position: relative;
   display: grid;
   grid-template-columns: 78rpx minmax(0, 1fr);
   align-items: start;
@@ -1442,6 +1518,43 @@ button::after {
   border: 1rpx solid rgba(255, 255, 255, 0.62);
   border-radius: 24rpx;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.52));
+}
+
+.member-section .member-row-manageable {
+  padding-right: 20rpx;
+}
+
+.member-section .member-more-button {
+  position: absolute;
+  top: -14rpx;
+  right: -12rpx;
+  z-index: 2;
+  width: 52rpx;
+  height: 52rpx;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  border-radius: 50%;
+  background: #ead7ff;
+  box-shadow: 0 8rpx 18rpx rgba(80, 35, 120, 0.14);
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.member-section .member-more-button[disabled] {
+  opacity: 0.56;
+}
+
+.member-section .member-more-dot {
+  display: block;
+  flex-shrink: 0;
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: #7c3cff;
 }
 
 .member-section .member-avatar {
@@ -1460,6 +1573,11 @@ button::after {
 
 .member-section .member-content-actions {
   grid-template-columns: minmax(0, 1fr) 108rpx;
+}
+
+.member-section .member-row-manageable .member-content-actions {
+  padding-right: 12rpx;
+  box-sizing: border-box;
 }
 
 .member-section .member-name-line {
@@ -1580,6 +1698,11 @@ button::after {
   gap: 10rpx;
   justify-items: stretch;
   align-content: center;
+}
+
+.member-section .member-row-manageable .member-actions {
+  padding-top: 22rpx;
+  align-content: start;
 }
 
 .member-section .copy-button,

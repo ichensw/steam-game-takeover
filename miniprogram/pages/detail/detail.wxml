@@ -62,7 +62,12 @@
       </view>
 
       <view class="member-list">
-        <view class="member-row" wx:for="{{takeover.participants}}" wx:key="userId">
+        <view class="member-row {{canManage && !item.isSelf && takeover.takeoverState !== 2 ? 'member-row-manageable' : ''}}" wx:for="{{takeover.participants}}" wx:key="userId">
+          <button class="member-more-button" wx:if="{{canManage && !item.isSelf && takeover.takeoverState !== 2}}" disabled="{{isKicking || isBlocking}}" data-userid="{{item.userId}}" data-nickname="{{item.nickName}}" bindtap="openMemberManageSheet">
+            <text class="member-more-dot"></text>
+            <text class="member-more-dot"></text>
+            <text class="member-more-dot"></text>
+          </button>
           <image class="member-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
           <view class="member-content {{item.steamId || (takeover.takeoverState === 2 && !item.isSelf) ? 'member-content-actions' : ''}}">
             <view class="member-info">
@@ -129,6 +134,26 @@
     <view class="loading-card">
       <view class="loading-spinner"></view>
       <text class="loading-text">加载中</text>
+    </view>
+  </view>
+
+  <view class="sheet-mask" wx:if="{{showMemberManageSheet}}" bindtap="closeMemberManageSheet"></view>
+  <view class="admin-sheet manage-sheet" wx:if="{{showMemberManageSheet}}">
+    <view class="sheet-title-row">
+      <view class="report-title-copy">
+        <text class="sheet-title">管理队友</text>
+        <text class="report-target">{{manageNickname}}</text>
+      </view>
+      <view class="close-button" bindtap="closeMemberManageSheet">×</view>
+    </view>
+
+    <view class="manage-action-list">
+      <button class="manage-action manage-action-kick" loading="{{isKicking}}" disabled="{{isKicking || isBlocking}}" bindtap="kickSelectedMember">
+        <text class="manage-action-title">踢出队伍</text>
+      </button>
+      <button class="manage-action manage-action-block" wx:if="{{takeover.isCreator}}" loading="{{isBlocking}}" disabled="{{isKicking || isBlocking}}" bindtap="blockSelectedMember">
+        <text class="manage-action-title">拉黑玩家</text>
+      </button>
     </view>
   </view>
 

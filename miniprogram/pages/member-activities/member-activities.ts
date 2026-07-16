@@ -64,7 +64,7 @@ const normalizeActivity = (raw: Record<string, any>): MemberActivity => {
     remark: raw.remark || '',
     avatarUrl: raw.avatarUrl || raw.avatar_url || FEMALE_AVATAR_URL,
     action: Number(raw.action || 0),
-    actionText: raw.actionText || (Number(raw.action) === 2 ? '退出' : '加入'),
+    actionText: raw.actionText || (Number(raw.action) === 3 ? '被踢出' : Number(raw.action) === 2 ? '退出' : '加入'),
     createdAt: raw.createdAt || raw.created_at || '',
     isSelf,
     hasReported,

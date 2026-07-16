@@ -56,6 +56,15 @@ type CreditInfo = {
   badge: string
 }
 
+type BlockedUser = {
+  id: number
+  nickname: string
+  steamId: string
+  avatarUrl: string
+  creditScore?: number
+  creditStatus?: string
+}
+
 const FEMALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-female.jpg'
 const MALE_AVATAR_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/default-avatar/avatar-male.jpg'
 const PROFILE_BG_URL = 'https://wechat-bot-images.oss-cn-hangzhou.aliyuncs.com/miniapp/uploads/2026/06/220-1782216063196384700-57523733eb66.png'
@@ -196,6 +205,10 @@ Page({
       badge: '可靠队友',
     } as CreditInfo,
     showCreditHelp: false,
+    showBlockedUsersSheet: false,
+    blockedUsers: [] as BlockedUser[],
+    isLoadingBlockedUsers: false,
+    unblockingUserId: 0,
     showProfileCompletion: true,
     createdCount: 0,
     joinedCount: 0,
@@ -300,6 +313,53 @@ Page({
 
   closeCreditHelp() {
     this.setData({ showCreditHelp: false })
+  },
+
+  openBlockedUsers() {
+    this.setData({ showBlockedUsersSheet: true })
+    this.loadBlockedUsers()
+  },
+
+  closeBlockedUsers() {
+    if (this.data.unblockingUserId) return
+    this.setData({ showBlockedUsersSheet: false })
+  },
+
+  loadBlockedUsers() {
+    this.setData({ isLoadingBlockedUsers: true })
+    apiRequest<{ list?: BlockedUser[]; total?: number }>('/api/me/blocked-users')
+      .then(result => {
+        this.setData({ blockedUsers: (result && result.list) || [] })
+      })
+      .catch(error => wx.showToast({ title: error.message || '加载失败', icon: 'none' }))
+      .finally(() => this.setData({ isLoadingBlockedUsers: false }))
+  },
+
+  unblockUser(event: WechatMiniprogram.TouchEvent) {
+    const userId = Number(event.currentTarget.dataset.userid || 0)
+    const nickname = String(event.currentTarget.dataset.nickname || '该玩家')
+    if (!userId || this.data.unblockingUserId) return
+
+    wx.showModal({
+      title: '解除拉黑',
+      content: `解除后，${nickname} 可以重新加入你发起的队伍。`,
+      confirmText: '解除',
+      confirmColor: '#7c3cff',
+      success: ({ confirm }) => {
+        if (!confirm) return
+        this.setData({ unblockingUserId: userId })
+        apiRequest({
+          url: `/api/users/${userId}/unblock`,
+          method: 'POST',
+        })
+          .then(() => {
+            this.setData({ blockedUsers: this.data.blockedUsers.filter(user => user.id !== userId) })
+            wx.showToast({ title: '已解除', icon: 'success' })
+          })
+          .catch(error => wx.showToast({ title: error.message || '操作失败', icon: 'none' }))
+          .finally(() => this.setData({ unblockingUserId: 0 }))
+      },
+    })
   },
 
   openProfileCompletion() {

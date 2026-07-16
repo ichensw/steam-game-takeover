@@ -209,6 +209,11 @@ button::after {
   color: #e54868;
 }
 
+.badge-3 {
+  background: rgba(111, 58, 184, 0.12);
+  color: #6f3ab8;
+}
+
 .steam-line {
   color: rgba(53, 21, 86, 0.58);
   font-size: 22rpx;
